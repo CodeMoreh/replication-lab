@@ -1,0 +1,431 @@
+---
+title: "Testing the robustness of a published claim: Teney (2016)"
+author: "Pair: [names]"
+date: today
+format:
+  html:
+    toc: true
+    toc-depth: 2
+    code-fold: false
+    df-print: kable
+execute:
+  message: false
+  warning: false
+knitr:
+  opts_chunk:
+    fig-width: 8
+    fig-height: 5
+---
+
+```{r}
+#| label: setup
+#| include: false
+
+# Packages used across the report. They are all pre-installed on the workshop
+# machines and all available in the browser track too. If any are missing on
+# your own laptop, run R/check_setup.R – it tells you which.
+library(dplyr)
+library(readr)
+library(ggplot2)
+library(broom)
+library(fixest)
+library(plm)
+library(modelsummary)
+
+# A calm default look for every figure.
+theme_set(theme_minimal(base_size = 12))
+options(scipen = 6, digits = 4)
+```
+
+## The claim, and what we are doing to it
+
+Teney (2016) studied how citizens frame the European Union. One claim from that
+paper is our target:
+
+> "… poor economic performances … decrease positive dimensions of EU framing"
+> (Teney 2016: 619)
+
+Operationalised the way the Multi100 project constrained it for its five
+analysts: does a country's **unemployment rate** (poor economic performance)
+lower the **cosmopolitan** dimension of EU framing (peace, democracy, free
+movement, cultural diversity, a stronger say in the world)? The published anchor
+result was a coefficient of −0.0034, t = −4.03.
+
+You will hold the data, the tools, and the workflow the project used, and ask:
+how robust is that number to *justifiable* alternative choices? Work through the
+tasks below in order. Each is a small, committable step.
+
+::: {.callout-tip}
+## How the tasks work
+Every task is a callout box with instructions, a **TODO** you complete, and code
+chunks that **already run** – so the report renders from the first preview. You
+edit the prose blanks and, in Tasks D2 and F, the code. Keep committing as you go.
+:::
+
+---
+
+::: {.callout-note title="Task A – Concepts (the three Rs)"}
+
+Before touching data, fix the vocabulary. Fill in each blank with one word
+(**reproducibility**, **robustness**, or **replicability**).
+
+**TODO – complete the four sentences:**
+
+- ___ is rerunning the *same* analysis on the *same* data and getting the *same*
+  result. (Same question, same data, same code.)
+- ___ is asking whether the result survives *justifiable alternative* analyses of
+  the *same* data. (Same question, same data, different defensible choices.)
+- ___ is testing the same question on *independent, new* data. (Same question,
+  new data.)
+- This exercise is a ___ test: we keep the data fixed and vary the analysis.
+  *(answer: robustness)*
+
+When you have filled these in, commit:
+`git commit -am "Task A: define the three Rs"`.
+
+:::
+
+---
+
+::: {.callout-note title="Task B – Get the data like a researcher"}
+
+`R/get_data.R` fetches the published `rep_data.csv` from the Open Science
+Framework – the analyst's fork (OSF node `6zqct`) – with fallbacks. The
+official Multi100 archival record is at `osf.io/8rtwe`; the fork at
+`osf.io/6zqct` adds the corrected April 2025 analysis and is what participants
+fetch from. The file already ships in `data/`, so this is the OSF-access
+*exercise*: running it proves you can pull a real published artefact. If you
+are offline it simply uses the committed copy.
+
+**TODO:** run the chunks, then read the small-multiples figure. Which countries
+trend down over 2004–2013? Note one in a comment.
+
+```{r}
+#| label: get-data
+# Fetch (or confirm) data/rep_data.csv. Prints which route it used.
+source("R/get_data.R")
+```
+
+```{r}
+#| label: read-data
+# The published country-year panel: 27 countries x 10 years = 270 rows.
+rep <- read_csv("data/rep_data.csv")
+glimpse(rep)
+```
+
+```{r}
+#| label: count-data
+# How many countries, how many years, how many country-year cells?
+rep |>
+  summarise(
+    countries = n_distinct(cntry),
+    years     = n_distinct(year),
+    rows      = n()
+  )
+```
+
+```{r}
+#| label: fig-cosmo-trend
+#| fig-cap: "Mean cosmopolitan EU framing over time, by country – an echo of Teney's Figure 1."
+ggplot(rep, aes(x = year, y = mcosmopolitan)) +
+  geom_line() +
+  facet_wrap(~ cntry) +
+  scale_x_continuous(breaks = c(2004, 2008, 2013)) +
+  labs(x = NULL, y = "Mean cosmopolitan framing (0–1)")
+```
+
+:::
+
+---
+
+::: {.callout-note title="Task C – Estimand and DAG"}
+
+Before estimating, say *precisely* what you are estimating. An estimand has two
+parts: a **unit-specific quantity** and a **target population** (Lundberg et al.
+2021). State it outside any model.
+
+**TODO – complete the estimand sentence:**
+
+> Unit-specific quantity: the change in [____] for a one-point difference in
+> [____]. Target population: [____].
+
+*(A defensible filling: the change in mean cosmopolitan framing within a
+country-year, for a one-percentage-point difference in that country's
+unemployment rate; across EU member states, 2004–2013.)*
+
+Now the identification assumptions. `R/dag_starter.R` builds a half-drawn DAG:
+the causal path and two confounder pairs are in; the more arguable arrows are
+listed as ready-to-paste lines. Open the file, uncomment any edges you believe,
+re-source it, and re-run `adjustmentSets()`.
+
+```{r}
+#| label: dag
+#| fig-cap: "The starter DAG: unemployment → framing, with country and year as confounders."
+#| fig-height: 5
+source("R/dag_starter.R")
+plot_dag(dag)
+```
+
+```{r}
+#| label: adjustment-set
+# What must we adjust for to identify the unemployment -> framing effect?
+dagitty::adjustmentSets(dag, exposure = "unemployment", outcome = "framing")
+```
+
+The starter graph returns `{ country, year }`. That is the whole point of the
+two-way fixed effects you will fit next: country fixed effects adjust for
+`country`, year fixed effects adjust for `year`.
+
+**TODO – answer two questions in a sentence each:**
+
+1. What do **country** and **year** fixed effects adjust for, in plain terms?
+   *(country-constant traits, and shocks common to all countries in a year)*
+2. What can they **not** fix? *(a time-varying, country-level confounder – e.g.
+   GDP growth moving both unemployment and framing within a country over time)*
+
+Commit: `git commit -am "Task C: estimand + DAG + adjustment set"`.
+
+:::
+
+---
+
+::: {.callout-note title="Task D1 – Reproduce the constrained result"}
+
+Fit the Multi100-constrained model: cosmopolitan framing on (mean-centred)
+unemployment, with country and year fixed effects. We fit it **two ways** – with
+`plm` (what the published analyst used) and with `fixest::feols` (faster, and
+what the live demo uses). They should agree; that they do is itself a small
+robustness lesson.
+
+```{r}
+#| label: fit-rep
+# Mean-centre unemployment, as the published analysis did.
+rep <- rep |> mutate(unemp_c = unemp - mean(unemp, na.rm = TRUE))
+
+# plm: the published estimator.
+m_plm <- plm(
+  mcosmopolitan ~ unemp_c,
+  data   = rep,
+  index  = c("cntry", "year"),
+  effect = "twoways",
+  model  = "within"
+)
+
+# fixest: the same model, fixed effects after the | .
+m_feols <- feols(mcosmopolitan ~ unemp_c | cntry + year, data = rep)
+```
+
+```{r}
+#| label: tbl-rep
+#| tbl-cap: "The constrained model on the published rep_data.csv, two estimators."
+modelsummary(
+  list("plm (two-way FE)" = m_plm, "fixest (two-way FE)" = m_feols),
+  estimate  = "{estimate}",
+  statistic = "t = {statistic}",
+  gof_map   = c("nobs", "r.squared"),
+  coef_rename = c("unemp_c" = "Unemployment (centred)")
+)
+```
+
+You just recovered **t = −3.853** on `rep_data.csv`.
+
+::: {.callout-important title="A discrepancy worth understanding"}
+The result recorded for this analyst (C6HJR) in the Multi100 dataset is
+**t = −3.804**, not −3.853. The gap is real and it has a cause – and the
+cause is already documented in the analyst's own script.
+
+The original data-prep script read the EB 70.1 file (ZA4819) twice: once for
+2008 (correct) and again in place of EB 72.4 (ZA4994) for 2009 (incorrect).
+**The analyst spotted this during the project and corrected it.** The recorded
+result came from the corrected pipeline. The annotation is preserved in the
+analyst's fork (`osf.io/6zqct`, folder `moreh_rep_vAPR2025/`): the script
+carries the note "APRIL 2025 – Mistake in dataset here; the dataset associated
+with 'eb724' should be 'ZA4994_v3-0-0.dta'". The official Multi100 component
+(`osf.io/8rtwe`) preserved only the earlier, uncorrected folder; the fork
+publishes the full trail.
+
+The workshop's corrected panel (`teney_panel.csv`) independently rebuilds the
+same corrected wave set – and the same constrained model on it gives
+**t = −3.804 exactly**, confirming which dataset produced the recorded value.
+This is reproducibility working as designed: open materials made every step
+checkable. See `data/teney_panel_codebook.md` for details.
+:::
+
+```{r}
+#| label: fit-corrected
+# The corrected panel: same construction, the right 2009 wave.
+ten <- read_csv("data/teney_panel.csv") |>
+  mutate(unemp_c = unemp - mean(unemp, na.rm = TRUE))
+
+m_corrected <- feols(mcosmo ~ unemp_c | cntry + year, data = ten)
+```
+
+```{r}
+#| label: tbl-corrected
+#| tbl-cap: "The same constrained model on the corrected teney_panel.csv."
+modelsummary(
+  list("corrected (fixest)" = m_corrected),
+  estimate  = "{estimate}",
+  statistic = "t = {statistic}",
+  gof_map   = c("nobs", "r.squared"),
+  coef_rename = c("unemp_c" = "Unemployment (centred)")
+)
+```
+
+On the corrected panel the coefficient is **−0.00347** with **t = −3.804** –
+exactly the value recorded for analyst C6HJR in the Multi100 dataset. The
+constrained result reproduces. Now make it your own.
+
+Commit: `git commit -am "Task D1: reproduce the constrained result (t = -3.80)"`.
+
+:::
+
+---
+
+::: {.callout-note title="Task D2 – Your analytical path (preregister, then run)"}
+
+Pick **one** deviation from the specification menu on the workshop site
+([the spec menu](https://codemoreh.github.io/applied-replication/exercise/spec-menu.html))
+– a different outcome scale, a different unemployment transform, adding GDP
+growth, a different estimator, a different sample window, or weights. Every
+option is *justifiable*; the discipline is choosing **with a reason**.
+
+**TODO – write your choice and a two-sentence justification:**
+
+> **Our spec:** ____________________________________________
+>
+> **Why (2 sentences):** ___________________________________
+
+**Preregister it – this is the point of the task.** Commit your choice *before*
+you run it, with a message in this exact shape:
+
+```sh
+git commit -am "prereg: <DV> ~ <IV> | <estimator> | <sample>"
+```
+
+*Only then* fill in the parameters below and run. The skeleton is a worked
+`fixest` example you adapt – change the variables, not the plumbing.
+
+```{r}
+#| label: my-spec
+# --- your choices (edit these) --------------------------------------------
+my_outcome  <- "mcosmo"     # e.g. "mcosmo" (constrained) or "mpos" (all positive)
+my_exposure <- "unemp_c"    # e.g. "unemp_c", "unemp", "log(unemp)"
+my_controls <- character(0) # e.g. "growth", or character(0) for none
+my_fe       <- c("cntry", "year")  # e.g. c("cntry","year"), or just "cntry"
+
+# --- build the formula and fit (you can leave this plumbing as is) ---------
+rhs <- paste(c(my_exposure, my_controls), collapse = " + ")
+fml <- as.formula(
+  paste(my_outcome, "~", rhs, "|", paste(my_fe, collapse = " + "))
+)
+
+my_model <- feols(fml, data = ten)
+my_model
+```
+
+```{r}
+#| label: report
+# Format the result into the one line everyone pastes to the Discussion thread.
+source("R/report_result.R")
+report_result(
+  my_model,
+  spec = "mcosmo ~ unemp_c | twoway-FE | all 2004–2013"  # describe YOUR spec
+)
+```
+
+Copy the `RESULT | …` line – Task E posts it to the Discussion thread.
+
+:::
+
+---
+
+::: {.callout-note title="Task E – Publish and share"}
+
+Get your report online and your result onto the board.
+
+1. **Render** one last time: `quarto render` (or just save while `quarto preview`
+   is running).
+2. **Commit** your work: in Positron's **Source Control** panel, stage the
+   changes, write a message (e.g. `Task E: final render and result`), and commit.
+3. **Push**: click **⋯ → Push** (or the sync arrows) in Source Control.
+4. **Paste** into the
+   [Results board Discussion thread](https://github.com/CodeMoreh/applied-replication/discussions):
+   your `RESULT | …` line **and** your repository URL.
+5. If you enabled Pages (Settings → Pages → Source: "GitHub Actions"), your live
+   report appears at `https://<your-username>.github.io/replication-lab/` within
+   a minute or two of the push.
+
+Tick the passport boxes in `README.md` as you complete them – with a commit, of
+course.
+
+:::
+
+---
+
+::: {.callout-note title="Task F – Stretch (optional)"}
+
+Time to spare? Pick one.
+
+The Teney (2016) paper went through all three Rs in the SCORE programme – and
+got three different verdicts. The same paper's push-button reproduction
+**failed** (the author-provided Stata code referenced file names that did not
+match what was available for download), and its preregistered secondary-data
+replication returned a **sign flip** (a positive coefficient, b = 0.002,
+t = 2.004, in the opposite direction to the original). You can explore the full
+SCORE dossier – reproduction, robustness, and replication side by side – at
+<https://osf.io/h7432/> (SCORE parent node for this paper).
+
+- **A second spec.** Change `my_outcome`, `my_exposure`, or `my_fe` above, rerun,
+  and `report_result()` it. Two points on the class multiverse instead of one.
+- **Fixed vs random effects.** Fit the random-effects version with `plm` and
+  compare with a Hausman test – if it rejects, the fixed-effects estimate is the
+  safer one.
+
+  ```{r}
+  #| label: hausman
+  #| eval: false
+  # Set eval: true to run. Compares within (FE) vs random effects.
+  re <- plm(mcosmo ~ unemp_c, data = ten, index = c("cntry", "year"),
+            effect = "twoways", model = "random")
+  fe <- plm(mcosmo ~ unemp_c, data = ten, index = c("cntry", "year"),
+            effect = "twoways", model = "within")
+  phtest(fe, re)
+  ```
+
+- **Weight by sample size.** Country-years rest on very different respondent
+  counts (`n_cy`); weight the model by `n_cy` and see whether the estimate moves.
+
+  ```{r}
+  #| label: weighted
+  #| eval: false
+  feols(mcosmo ~ unemp_c | cntry + year, data = ten, weights = ~ n_cy)
+  ```
+
+- **The mirror-image expectation.** The claim is about *positive* framing. Look at
+  a **negative** dimension instead (`mneg`, or communitarian `mcomm`): if poor
+  economic performance lowers positive framing, does it *raise* negative framing?
+  Check the sign.
+
+  ```{r}
+  #| label: mirror
+  #| eval: false
+  feols(mneg ~ unemp_c | cntry + year, data = ten)
+  ```
+
+:::
+
+---
+
+## References
+
+Teney, C. (2016). Does the EU economic crisis undermine subjective
+Europeanization? Assessing the dynamics of citizens' EU framing between 2004 and
+2013. *European Sociological Review*, 32(5), 619–633.
+
+Lundberg, I., Johnson, R., & Stewart, B. M. (2021). What is your estimand?
+Defining the target quantity connects statistical evidence to theory. *American
+Sociological Review*, 86(3), 532–565.
+
+Aczel, B., et al. (2026). The robustness of social science findings to
+analytical variability (Multi100). *Nature*, 652, 135–142.

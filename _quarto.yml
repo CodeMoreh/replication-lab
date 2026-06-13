@@ -1,0 +1,20 @@
+project:
+  type: website
+  output-dir: _site
+
+website:
+  title: "Replication lab – Teney (2016)"
+
+# freeze: auto means a chunk is only re-run when its code changes. The committed
+# _freeze/ folder lets GitHub Actions publish without re-executing everything –
+# but a fresh edit to any chunk DOES re-run on the next render, so your work
+# always shows up.
+execute:
+  freeze: auto
+
+format:
+  html:
+    toc: true
+    theme: cosmo
+    code-fold: false
+    code-tools: true

@@ -1,0 +1,12 @@
+# Quarto / R working files – safe to ignore, they regenerate.
+/.quarto/
+/_site/
+.Rproj.user
+*_cache/
+.DS_Store
+
+# Deliberately NOT ignored:
+#   /_freeze/  – committed so GitHub Actions can publish without re-running R.
+#   /data/     – the CSVs are committed so the report renders offline.
+
+**/*.quarto_ipynb
