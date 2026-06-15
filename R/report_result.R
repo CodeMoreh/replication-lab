@@ -1,12 +1,12 @@
 # ============================================================================
 # report_result() – format one model into a copy-pasteable result line
 # ----------------------------------------------------------------------------
-# Turns a fitted model into the single standardised line every pair pastes
-# into the workshop Discussion thread. Because every pair reports the SAME
-# quantities – coefficient, standard error, t, residual df, n, and the partial
-# correlation r = t / sqrt(t^2 + df) – results on different outcome scales and
-# from different estimators can sit on one axis, exactly as the five Multi100
-# analysts were compared. That r conversion is the same one Multi100 used.
+# Turns a fitted model into a one-click Google Form link that drops your result
+# onto the live Multiverse chart. Because every pair reports the SAME quantities
+# – coefficient, standard error, t, residual df, n, and the partial correlation
+# r = t / sqrt(t^2 + df) – results on different outcome scales and from different
+# estimators can sit on one axis, exactly as the five Multi100 analysts were
+# compared. That r conversion is the same one Multi100 used.
 #
 # Works with plm, fixest (feols), and lm objects.
 #
@@ -100,21 +100,42 @@ report_result <- function(model, spec, term = NULL) {
   # the Multi100 standardisation. Sign follows the coefficient.
   r <- stat / sqrt(stat^2 + df_resid)
 
-  # --- 4. Emit the standardised line ----------------------------------------
-  cat(sprintf(
-    "RESULT | spec: %s | b = %s | se = %s | t = %s | df = %d | n = %d | r = %s\n",
-    spec,
-    format(round(est,  5), nsmall = 5),
-    format(round(se,   5), nsmall = 5),
-    format(round(stat, 3), nsmall = 3),
-    df_resid,
-    n_obs,
-    format(round(r,    3), nsmall = 3)
-  ))
+  # --- 4. Build the one-click submission link and print it -------------------
+  # The class-results Google Form turns these numbers into a dot on the live
+  # Multiverse chart. The link opens the form with every field pre-filled, so you
+  # just press Send. (Facilitator: FORM_ID and the entry.* codes come from the
+  # Form – see facilitator/live-results-setup.md, step 1.)
+  FORM_ID <- "1FAIpQLSezoAEOnZUfP4pkfN28_XtEBwSyc2RLsXB-h8RPSegF7_t76A"
+  field <- c(spec = "entry.832496914", b = "entry.1656311800", se = "entry.1337458262",
+             t = "entry.1940779437", df = "entry.1682711955", n = "entry.1586392724",
+             r = "entry.1660273001")
+  value <- c(spec = spec,
+             b  = format(round(est,  5), nsmall = 5),
+             se = format(round(se,   5), nsmall = 5),
+             t  = format(round(stat, 3), nsmall = 3),
+             df = as.character(df_resid),
+             n  = as.character(n_obs),
+             r  = format(round(r,    3), nsmall = 3))
+  query <- paste(vapply(names(field), function(k)
+    paste0(field[[k]], "=", utils::URLencode(value[[k]], reserved = TRUE)),
+    character(1)), collapse = "&")
+  url <- sprintf(
+    "https://docs.google.com/forms/d/e/%s/viewform?usp=pp_url&%s", FORM_ID, query)
 
-  # Return the pieces invisibly so the line can also be captured / tested.
+  cat(sprintf(paste0("Your result:  spec = %s\n",
+              "  b = %s | se = %s | t = %s | df = %d | n = %d | r = %s\n\n"),
+              spec,
+              format(round(est,  5), nsmall = 5),
+              format(round(se,   5), nsmall = 5),
+              format(round(stat, 3), nsmall = 3),
+              df_resid, n_obs,
+              format(round(r,    3), nsmall = 3)))
+  cat("Submit (opens the form with your numbers pre-filled - just press Send):\n")
+  cat(url, "\n")
+
+  # Return the pieces invisibly so the result can also be captured / tested.
   invisible(list(
     spec = spec, term = row$term, estimate = est, se = se,
-    statistic = stat, df = df_resid, n = n_obs, r = r
+    statistic = stat, df = df_resid, n = n_obs, r = r, url = url
   ))
 }
