@@ -55,8 +55,8 @@ Every task is a callout box with instructions, a **TODO** you complete, and code
 
 ------------------------------------------------------------------------
 
-::: {.callout-note title="Task A – Concepts (the three Rs)"}
-**Before touching data, fix the vocabulary.** Four reanalysts walk into a seminar. Three of them are doing one of our three R's, while one is doing something else entirely**.** Label each with **reproducibility**, **robustness**, or **replicability** – and for the odd one out, say why none of the three quite fits.
+::: {.callout-note title="Task A – Concepts"}
+**Before touching data, fix the vocabulary.** In the four scenarios below, three are doing one of our three R's, while one is doing something else entirely. Label each with **reproducibility**, **robustness**, or **replicability** – and for the odd one out, say why none of the three quite fits.
 
 **TODO:** **Label each scenario and explain if needed**
 
