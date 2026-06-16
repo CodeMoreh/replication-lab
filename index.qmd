@@ -56,21 +56,14 @@ Every task is a callout box with instructions, a **TODO** you complete, and code
 ------------------------------------------------------------------------
 
 ::: {.callout-note title="Task A – Concepts"}
-**Before touching data, fix the vocabulary.** In the four scenarios below, three are doing one of our three R's, while one is doing something else entirely. Label each with **reproducibility**, **robustness**, or **replicability** – and for the odd one out, say why none of the three quite fits.
+**Before touching data, fix the vocabulary.** In the four scenarios below, three are doing one of our three R's, while one is doing something else entirely.
 
-**TODO:** **Label each scenario and explain if needed**
+**TODO: Read the four scenarios and fill in the gaps**
 
-1.  \_\_\_ : A reviewer reruns the authors' Stata `.do` file on the authors' data and gets a *different* coefficient from the one printed in the paper. (Is the activity still named by what they *tried* to do, even though it failed?)
-
-2.  \_\_\_ : Same data, but the analyst re-implements the model in R instead of Stata and centres the predictor. Same conclusion. (Careful: is changing the *software* the same as changing the *analysis*?)
-
-3.  \_\_\_ : A preregistered team tests the identical hypothesis on a *separate, much larger* dataset chosen to be theoretically equivalent; and they get results that contradict those of the original analysis.
-
-4.  \_\_\_ : A different team tests the same underlying idea on social-media text using a machine-learning classifier, which is not a method used by the original analysis.
-
-So, what you will be doing in this exercise is...
-
-- This exercise is a \_\_\_ because our aim is to use \_\_\_ data \_\_\_ the original study and perform an analysis that is \_\_\_ the analysis done in the original study.
+***Scenario 1:*** A reviewer reruns the authors' Stata `.do` file on the authors' data and gets a *different* coefficient from the one printed in the paper. This is an example of \_\_\_\_\_\_, even though what they *tried* to do failed.
+***Scenario 2:*** The analyst uses the authors' submitted replication dataset, but they re-implement the model in R instead of Stata and centre the predictor. Is this a case of \_\_\_\_\_\_ or \_\_\_\_\_\_?
+***Scenario 3: *** A preregistered team tests the identical hypothesis on a *separate, much larger* dataset chosen to be theoretically equivalent, and gets results that contradict the original. Their conclusion is that the original analysis has failed to \_\_\_\_\_\_.
+***Scenario 4:*** Instead of the survey data used by the original authors, another researcher tests the same underlying idea on social-media texts using a machine-learning classifier method that the original never used. To their surprise, the authors' original findings prove \_\_\_\_\_\_ and the researcher concludes that they provide a reliable middle-range theory of the phenomenon they investigate.
 
 When you have filled these in, commit: `git commit -am "Task A: define the three Rs"`.
 :::
