@@ -31,6 +31,6 @@ Commons Attribution 4.0 International licence (CC BY 4.0):
 https://creativecommons.org/licenses/by/4.0/. You are free to share and adapt
 this material for any purpose, provided you give appropriate credit.
 
-The derived country-year data in data/ (rep_data.csv, teney_panel.csv) are also
+The derived country-year data in data/ (rep_data.csv, EUframes_cy.csv) are also
 CC BY 4.0. The underlying Eurobarometer microdata are NOT redistributed here and
 remain subject to GESIS terms; the macro indicators are World Bank Open Data.

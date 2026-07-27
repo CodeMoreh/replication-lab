@@ -1,19 +1,20 @@
 # ============================================================================
-# EXHIBIT ONLY – the CORRECTED workshop build that produced data/teney_panel.csv.
-# Do NOT run it here: like the original prep script it needs the raw GESIS
+# EXHIBIT ONLY – the independent workshop build that produced data/EUframes_cy.csv.
+# Do NOT run it here: like the as-submitted prep script it needs the raw GESIS
 # Eurobarometer scientific-use files (registration required, not redistributable).
 # The paths below (rawdir, outdir_*) are the coordinator's own local machine
 # paths and will not exist on yours – they are left in deliberately so you can
-# see exactly how the corrected panel was built. The fix is at the 2009 wave:
-# this build reads ZA4994 (EB 72.4) where the published script duplicated ZA4819.
+# see exactly how the panel was built. Reading this script side by side with
+# prep_exhibit.R repays the effort; the codebook's wave inventory is the map.
 # ============================================================================
 
 # ============================================================================
-# Build the workshop panel (teney_panel.csv) from raw Eurobarometer files
-# - Corrected wave set (ZA4994 = EB 72.4 for 2009) -> data/teney_panel.csv
-# - As-published wave set (ZA4819 duplicated)      -> _planning_data/ (comparison)
-# - Validates non-2009 aggregates against the published rep_data.csv
-# - Quantifies the impact of the ZA4819/ZA4994 wave swap on the Task-2 model
+# Build the workshop panel (EUframes_cy.csv) from raw Eurobarometer files
+# - Full sixteen-wave build (per the codebook inventory) -> data/EUframes_cy.csv
+# - A second variant reproducing the published artifact's
+#   wave set                                             -> _planning_data/ (comparison)
+# - Validates the rebuild against the published rep_data.csv
+# - Quantifies where the two builds differ on the Task-2 model
 # Raw data: GESIS Eurobarometer scientific-use files (NOT redistributable).
 # ============================================================================
 
@@ -104,7 +105,7 @@ aggregate_panel <- function(d) {
 
 panel_corr <- aggregate_panel(ind)
 
-# as-published variant: drop EB 72.4, duplicate EB 70.1 as 2009
+# as-published variant – reproduces the published artifact's wave set exactly
 ind_pub <- ind |>
   filter(eb != "72.4") |>
   bind_rows(ind |> filter(eb == "70.1") |> mutate(eb = "70.1-dup", year = 2009))
@@ -139,8 +140,8 @@ add_macro <- function(panel) {
 panel_corr <- add_macro(panel_corr)
 panel_pub  <- add_macro(panel_pub)
 
-write_csv(panel_corr, file.path(outdir_public, "teney_panel.csv"))
-write_csv(panel_pub,  file.path(outdir_priv,  "teney_panel_aspublished.csv"))
+write_csv(panel_corr, file.path(outdir_public, "EUframes_cy.csv"))
+write_csv(panel_pub,  file.path(outdir_priv,  "EUframes_cy_aspublished.csv"))
 
 # --- validation & impact -----------------------------------------------------
 suppressPackageStartupMessages(library(plm))
@@ -152,7 +153,7 @@ chk <- panel_pub |>
 cat("max |mcosmo - mcosmopolitan| all years :", max(abs(chk$mcosmo - chk$mcosmopolitan)), "\n")
 cat("max |n_cy - n_cy_pub|       all years :", max(abs(chk$n_cy - chk$n_cy_pub)), "\n")
 
-cat("\n--- IMPACT of the wave swap on year-2009 values (corrected vs published) ---\n")
+cat("\n--- Where the two builds differ (workshop rebuild vs published artifact) ---\n")
 imp <- panel_corr |> filter(year == 2009) |>
   inner_join(repdata |> filter(year == 2009) |> select(cntry, mcosmopolitan),
              by = "cntry")
@@ -172,6 +173,6 @@ cat("published rep_data.csv :", t2(repdata |> rename(y0 = mcosmopolitan) |> muta
 cat("as-published rebuild   :", t2(panel_pub,  "mcosmo"), "\n")
 cat("corrected panel        :", t2(panel_corr, "mcosmo"), "\n")
 
-cat("\nRows in teney_panel.csv:", nrow(panel_corr), "| countries:",
+cat("\nRows in EUframes_cy.csv:", nrow(panel_corr), "| countries:",
     length(unique(panel_corr$cntry)), "| years:", length(unique(panel_corr$year)), "\n")
 cat("BUILD DONE\n")

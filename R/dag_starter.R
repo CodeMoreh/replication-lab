@@ -1,7 +1,7 @@
 # ============================================================================
-# dag_starter.R – a half-built causal DAG for the Teney claim
+# dag_starter.R – a half-built causal DAG for the claim under test
 # ----------------------------------------------------------------------------
-# This is the object you complete in Task C. It encodes the identification
+# This is the object you complete in Task 4. It encodes the identification
 # assumptions behind the claim "national unemployment lowers cosmopolitan EU
 # framing". The causal path of interest and the two assumed confounders are
 # already drawn; the more arguable arrows are present but COMMENTED OUT, each
@@ -61,7 +61,7 @@ dag <- dagitty::dagitty('dag {
   year -> framing
 }')
 
-# --- Arrows you may or may not believe (TASK C) -----------------------------
+# --- Arrows you may or may not believe (TASK 4) -----------------------------
 # Each is a substantive claim about the world. If you hold one, add it to the
 # graph and re-run adjustmentSets() to watch your adjustment set change. The
 # tidy way to add an edge without rewriting the whole string:

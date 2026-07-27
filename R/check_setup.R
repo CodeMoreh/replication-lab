@@ -1,16 +1,16 @@
-# ============================================================================
-# check_setup.R – does this machine have what the workshop needs?
-# ----------------------------------------------------------------------------
-# Run this BEFORE the day (or in the setup sprint) to find problems while there
-# is still time to fix them. It prints an [OK] / [FAIL] / [SKIP] line per check
-# and a verdict at the end. Nothing here changes your system – it only looks.
-#
-# Run it from a terminal:   Rscript R/check_setup.R
-# or from the R console:     source("R/check_setup.R")
-#
-# A FAIL is not the end of the world: the workshop has a browser track that
+# ########################################################################### #
+# Title:        check_setup.R – does this machine have what the workshop needs?
+# Purpose:      Report R version, Quarto, the required packages, and whether the
+#               workspace data files are present and readable. Prints an
+#               [OK] / [FAIL] / [SKIP] line per check and a verdict. It only
+#               looks – nothing here changes your system.
+# Sourced by:   the participant, before the session (source("R/check_setup.R"))
+# Author:       Chris Moreh
+# Last updated: 2026-07-16
+# ########################################################################### #
+
+# A FAIL is not the end of the world: the workshop has a browser route that
 # needs nothing but a web browser. The message at the bottom says what to do.
-# ============================================================================
 
 # --- tiny reporting helpers -------------------------------------------------
 .results <- new.env()
@@ -46,57 +46,55 @@ if (nzchar(qv) && !grepl("not found|error", qv, ignore.case = TRUE)) {
   fail("Quarto not found on PATH – install from https://quarto.org and reopen the terminal")
 }
 
-# --- 3. git on PATH + identity configured -----------------------------------
-gv <- sys_out("git", "--version")
-if (nzchar(gv) && grepl("git version", gv)) {
-  ok(paste0("git on PATH (", gv, ")"))
-  user_name  <- sys_out("git", c("config", "--global", "user.name"))
-  user_email <- sys_out("git", c("config", "--global", "user.email"))
-  if (nzchar(user_name))  ok(paste0("git user.name set ('",  user_name,  "')"))
-  else fail("git user.name not set – run: git config --global user.name \"Your Name\"")
-  if (nzchar(user_email)) ok(paste0("git user.email set ('", user_email, "')"))
-  else fail("git user.email not set – run: git config --global user.email \"you@example.com\"")
-} else {
-  fail("git not found on PATH – install from https://git-scm.com and reopen the terminal")
-}
-
-# --- 4. packages ------------------------------------------------------------
+# --- 3. packages ------------------------------------------------------------
+# The gaussian menu paths need fixest and plm; the beta family adds betareg
+# (fixed-effects and pooled designs), glmmTMB (random effects) and sandwich
+# (the cluster-robust pooled beta). All are checked so any menu choice runs.
 needed <- c("dplyr", "readr", "ggplot2", "broom", "fixest", "plm",
-            "dagitty", "ggdag", "modelsummary", "osfr")
+            "dagitty", "ggdag", "modelsummary", "osfr", "betareg",
+            "glmmTMB", "sandwich")
 missing <- needed[!vapply(needed, requireNamespace, logical(1), quietly = TRUE)]
 if (length(missing) == 0) {
   ok(paste0("all ", length(needed), " required packages installed"))
 } else {
   fail(paste0("missing package(s): ", paste(missing, collapse = ", ")))
-  cat('        install with: install.packages(c("',
+  cat('        install the missing ones with:\n')
+  cat('          install.packages("pak"); pak::pak(c("',
       paste(missing, collapse = '", "'), '"))\n', sep = "")
 }
 
-# --- 5. write access to the working directory -------------------------------
-probe <- file.path(getwd(), ".setup_write_probe")
-writable <- tryCatch({
-  writeLines("probe", probe); unlink(probe); TRUE
-}, error = function(e) FALSE)
-if (isTRUE(writable)) {
-  ok(paste0("write access to working directory (", getwd(), ")"))
-} else {
-  fail(paste0("cannot write to working directory (", getwd(),
-              ") – move the project somewhere you own"))
+# --- 4. data files present and readable -------------------------------------
+# The report renders offline because these ship inside the workspace. Confirm
+# they are here and that each reads as a country-year panel. EUframes_cy.csv is
+# the corrected panel every task fits against; rep_data.csv is the as-submitted
+# artefact the optional forensics.R exhibit puts beside it.
+data_files <- c("data/EUframes_cy.csv", "data/rep_data.csv")
+for (f in data_files) {
+  if (!file.exists(f)) {
+    fail(paste0("data file missing: ", f, " – run from the workspace root folder"))
+    next
+  }
+  n_rows <- tryCatch(nrow(utils::read.csv(f)), error = function(e) NA_integer_)
+  if (is.na(n_rows)) {
+    fail(paste0("could not read ", f))
+  } else {
+    ok(paste0(f, " present and readable (", n_rows, " rows)"))
+  }
 }
 
-# --- 6. optional network probe to OSF ---------------------------------------
-# This is the only check that needs the internet, so a failure is a [SKIP],
-# not a [FAIL] – the template renders offline regardless.
-net_ok <- tryCatch({
-  con <- url("https://osf.io", open = "rb")
-  on.exit(close(con), add = TRUE)
-  readBin(con, what = "raw", n = 1L)
-  TRUE
-}, error = function(e) FALSE)
-if (isTRUE(net_ok)) {
-  ok("network reaches https://osf.io (OSF fetch will work)")
+# The codebook the tasks refer to.
+if (file.exists("data/EUframes_cy_codebook.md")) {
+  ok("data/EUframes_cy_codebook.md present")
 } else {
-  skip("could not reach https://osf.io – offline is fine, data ships with the template")
+  skip("data/EUframes_cy_codebook.md not found (optional reference)")
+}
+
+# --- 5. the report renders? -------------------------------------------------
+# index.qmd is what you open and work in. Its presence is the last check.
+if (file.exists("index.qmd")) {
+  ok("index.qmd present – open it to start")
+} else {
+  fail("index.qmd not found – run this from the workspace root folder")
 }
 
 # --- verdict ----------------------------------------------------------------
@@ -105,12 +103,12 @@ cat(sprintf("  %d OK   %d FAIL   %d SKIP\n",
             .results$pass, .results$fail, .results$skip))
 
 if (.results$fail == 0) {
-  cat("\nYou are ready for the full pipeline track. See you there.\n")
+  cat("\nYou are ready. Open index.qmd and run `quarto preview` in the terminal.\n")
 } else {
   cat("\nSome checks failed. Two options:\n",
       " 1. Fix the FAILs above (each line says how), then re-run this script.\n",
-      " 2. Come anyway – the workshop has a browser track that needs nothing\n",
-      "    but a web browser, and your pair partner's laptop can drive the rest.\n",
+      " 2. Come anyway – the workshop has a browser route that needs nothing\n",
+      "    but a web browser, and a partner's laptop can drive the rest.\n",
       sep = "")
 }
 cat("\n")

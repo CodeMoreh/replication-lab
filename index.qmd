@@ -1,5 +1,5 @@
 ---
-title: "Testing the robustness of a published claim: Teney (2016)"
+title: "Testing the robustness of a published claim: the EU-frames case"
 author: "Pair: [names]"
 date: today
 format:
@@ -7,7 +7,7 @@ format:
     toc: true
     toc-depth: 2
     code-fold: false
-    df-print: kable
+    df-print: paged
 execute:
   message: false
   warning: false
@@ -21,77 +21,71 @@ knitr:
 #| label: setup
 #| include: false
 
-# Packages used across the report. They are all pre-installed on the workshop
-# machines and all available in the browser track too. If any are missing on
-# your own laptop, run R/check_setup.R – it tells you which.
+# Packages used across the report. Run R/check_setup.R first if any are missing
+# on your own laptop – it tells you which, and how to install them.
 library(dplyr)
 library(readr)
 library(ggplot2)
 library(broom)
 library(fixest)
-library(plm)
 library(modelsummary)
 
 # A calm default look for every figure.
 theme_set(theme_minimal(base_size = 12))
 options(scipen = 6, digits = 4)
+
+# The one working object: the corrected EU-frames country-year panel. Every
+# later task reads its choices from your preregistration and fits against this.
+euframes <- read_csv("data/EUframes_cy.csv", show_col_types = FALSE)
+
+# The preregister -> build -> run -> report helpers. Each fit they make is a
+# live estimation on `euframes`; the estimator, family and sample codes on the
+# menu expand to real fixest / plm / betareg / glmmTMB calls, loaded on demand.
+source("R/spec_tools.R")
 ```
 
 ## The claim, and what we are doing to it
 
-Teney (2016) studied how citizens frame the European Union. One claim from that paper is our target:
+The original author (OA) studied how citizens frame the European Union. One claim from their paper is our target:
 
 > "… poor economic performances … decrease positive dimensions of EU framing" (Teney 2016: 619)
 
 Operationalised the way the Multi100 project constrained it for its five analysts: does a country's **unemployment rate** (poor economic performance) lower the **cosmopolitan** dimension of EU framing (peace, democracy, free movement, cultural diversity, a stronger say in the world)? The published anchor result was a coefficient of −0.0034, t = −4.03.
 
-You will hold the data, the tools, and the workflow the project used, and ask: how robust is that number to *justifiable* alternative choices? Work through the tasks below in order. Each is a small, committable step.
+You hold the data, the tools, and the workflow the project used – and the code you work through is the coordinator's own submitted analysis. You are analyst no. 6, and the question is: how robust is that number to *justifiable* alternative choices? Work through the seven tasks below in order, from vocabulary to a dot on the live class chart.
 
 ::: callout-tip
 ## How the tasks work
 
-Every task is a callout box with instructions, a **TODO** you complete, and code chunks that **already run** – so the report renders from the first preview. You edit the prose blanks and, in Tasks D2 and F, the code. Keep committing as you go.
+Every task is a callout box with instructions, a **TODO** you complete, and code chunks that **already run** – so the report renders from the first preview. You edit the prose blanks and, in Tasks 5 and 6, the code. The browser version of this same exercise is on the workshop site if you would rather not install anything; this workspace is the full IDE pipeline.
 :::
 
 ------------------------------------------------------------------------
 
-::: {.callout-note title="Task A – Concepts"}
+::: {.callout-note title="Task 1 – Concepts"}
 **Before touching data, fix the vocabulary.** In the four scenarios below, three are doing one of our three R's, while one is doing something else entirely.
 
-**TODO: Read the four scenarios and fill in the gaps**
+**TODO: read the four scenarios and fill in the gaps.**
 
 ***Scenario 1:*** A reviewer reruns the authors' Stata `.do` file on the authors' data and gets a *different* coefficient from the one printed in the paper. This is an example of \_\_\_\_\_\_, even though what they *tried* to do failed.
 ***Scenario 2:*** The analyst uses the authors' submitted replication dataset, but they re-implement the model in R instead of Stata and centre the predictor. Is this a case of \_\_\_\_\_\_ or \_\_\_\_\_\_?
-***Scenario 3: *** A preregistered team tests the identical hypothesis on a *separate, much larger* dataset chosen to be theoretically equivalent, and gets results that contradict the original. Their conclusion is that the original analysis has failed to \_\_\_\_\_\_.
+***Scenario 3:*** A preregistered team tests the identical hypothesis on a *separate, much larger* dataset chosen to be theoretically equivalent, and gets results that contradict the original. Their conclusion is that the original analysis has failed to \_\_\_\_\_\_.
 ***Scenario 4:*** Instead of the survey data used by the original authors, another researcher tests the same underlying idea on social-media texts using a machine-learning classifier method that the original never used. To their surprise, the authors' original findings prove \_\_\_\_\_\_ and the researcher concludes that they provide a reliable middle-range theory of the phenomenon they investigate.
 
-When you have filled these in, commit: `git commit -am "Task A: define the three Rs"`.
+*(Answers: 1 reproducibility – the activity is reproducibility even though it failed to match, so the verdict is 'not reproduced'; 2 arguably still reproducibility, a grey area – re-implementing on the same data in different software is a re-computation, though centring the predictor and differing estimator implementations nudge toward robustness; 3 replicability – same question, independent new data; 4 generalisability – the impostor, new data and a new method at once.)*
 :::
 
 ------------------------------------------------------------------------
 
-::: {.callout-note title="Task B – Grab the data from the web"}
-`R/get_data.R` fetches the published `rep_data.csv` from the Open Science Framework – the analyst's fork (OSF node `6zqct`) – with fallbacks. The file already ships in `data/`, so this is an OSF-access *exercise*: running it proves you can pull a real published artefact. If you are offline or the url-fetch gets blocked, it simply uses the local copy.
+::: {.callout-note title="Task 2 – Get the data and look at it"}
+The **EU-frames dataset** (`EUframes_cy.csv`) is the corrected country-year panel behind the whole exercise. It is already loaded as `euframes` in the setup chunk, and the copy in `data/` is byte-identical to the one published in the analyst's fork on OSF (osf.io/6zqct – "Multi100 \| Teney_EurSocioRev_2016 \| Analyst_C6HJR", main folder); the official Multi100 archival record is at osf.io/8rtwe.
 
 **TODO:** run the chunks, then read the small-multiples figure. Which countries trend down over 2004–2013? Note one in a comment.
 
 ```{r}
-#| label: get-data
-# Fetch (or confirm) data/rep_data.csv. Prints which route it used.
-source("R/get_data.R")
-```
-
-```{r}
-#| label: read-data
-# The published country-year panel: 27 countries x 10 years = 270 rows.
-rep <- read_csv("data/rep_data.csv")
-glimpse(rep)
-```
-
-```{r}
 #| label: count-data
-# How many countries, how many years, how many country-year cells?
-rep |>
+# How many countries, how many years, how big is the panel?
+euframes |>
   summarise(
     countries = n_distinct(cntry),
     years     = n_distinct(year),
@@ -99,20 +93,81 @@ rep |>
   )
 ```
 
+You should see **27 countries**, **10 years** (2004–2013), and **270 rows**. The outcome we care about first is `mcosmo` – the mean cosmopolitan framing of the EU in each country-year (a 0–1 scale). The predictor is `unemp`, the annual unemployment rate; `growth` is annual GDP growth, and `n_cy` counts the survey respondents behind each row. Every column is described in `data/EUframes_cy_codebook.md`.
+
 ```{r}
 #| label: fig-cosmo-trend
-#| fig-cap: "Mean cosmopolitan EU framing over time, by country – an echo of Teney's Figure 1."
-ggplot(rep, aes(x = year, y = mcosmopolitan)) +
-  geom_line() +
-  facet_wrap(~ cntry) +
+#| fig-cap: "Mean cosmopolitan EU framing over time, by country – an echo of OA's Figure 1."
+#| fig-width: 9
+#| fig-height: 6
+ggplot(euframes, aes(x = year, y = mcosmo)) +
+  geom_line(colour = "grey55") +
+  geom_point(size = 0.7) +
+  facet_wrap(~ cntry, ncol = 6) +
   scale_x_continuous(breaks = c(2004, 2008, 2013)) +
   labs(x = NULL, y = "Mean cosmopolitan framing (0–1)")
+```
+
+Most countries drift gently; a few move sharply around the 2009 crisis. That variation – within a country, over time – is exactly what the fixed-effects model in Task 3 uses.
+
+*Practising the OSF pull (optional).* `R/get_data.R` fetches this file from the analyst's OSF fork the way a researcher would, with a workshop-site mirror as a fallback. It is not needed – the file already ships in `data/` – but running it proves you can pull a real published artefact:
+
+```{r}
+#| label: get-data
+#| eval: false
+# Optional: confirm data/EUframes_cy.csv from OSF (uses the local copy offline).
+source("R/get_data.R")
 ```
 :::
 
 ------------------------------------------------------------------------
 
-::: {.callout-note title="Task C – Estimand and DAG"}
+::: {.callout-note title="Task 3 – Reproduce the recorded result"}
+This is the **reproducibility** check. Fit the two-way fixed-effects model the Multi100 Task-2 constraints point to: cosmopolitan framing on grand-mean-centred unemployment, with country and year fixed effects. The target is **t = −3.804** (df = 233, N = 270) – the value on record for analyst C6HJR in the Multi100 dataset.
+
+```{r}
+#| label: fit-corrected
+# Grand-mean centre unemployment, exactly as the submitted analysis did. With
+# two-way fixed effects this shifts the intercept, not the slope or the t – it
+# is the transformation the constrained specification names, so do it explicitly.
+euframes <- euframes |> mutate(unemp_c = unemp - mean(unemp, na.rm = TRUE))
+
+# fixest::feols – the bar separates the regression from the fixed effects.
+m1 <- feols(mcosmo ~ unemp_c | cntry + year, data = euframes)
+
+tidy(m1)
+```
+
+```{r}
+#| label: tbl-corrected
+#| tbl-cap: "The constrained model on the corrected EUframes_cy.csv."
+modelsummary(
+  list("two-way FE (fixest)" = m1),
+  estimate  = "{estimate}",
+  statistic = "t = {statistic}",
+  gof_map   = c("nobs", "r.squared"),
+  coef_rename = c("unemp_c" = "Unemployment (centred)")
+)
+```
+
+The coefficient is **−0.00347** with **t = −3.804** – exactly the value recorded for analyst C6HJR, reproduced from the published data and the published model. `feols` reports classical (IID) standard errors by default when two fixed-effect dimensions are present, which is why it matches the `plm` value the analyst used to three decimals.
+:::
+
+::: {.callout-note collapse="true" title="The other number in the record – a story worth opening"}
+There is a second number in this analysis's public trail: **t = −3.853**. It is what the *first* submitted pipeline produced, and the gap to the −3.804 you just reproduced has a story.
+
+The as-submitted data-preparation script stacked sixteen Eurobarometer waves and read the EB 70.1 file (`ZA4819`) twice by mistake: once for 2008 (correct) and again in place of EB 72.4 (`ZA4994`) for 2009. The panel's 2009 rows were therefore a copy of the 2008 respondents – the two builds diverge on 2009 and nowhere else, and 2009 carried about half the respondents it should have. The analyst caught the slip during the project and corrected it; the recorded −3.804 comes from the corrected build – the very `EUframes_cy.csv` you are using.
+
+The whole trail is public in the analyst's fork (osf.io/6zqct): the `moreh_rep/` folder preserves the as-submitted pipeline; `moreh_rep_vAPR2025/` holds the corrected script – annotated "APRIL 2025 – Mistake in dataset here; the dataset associated with 'eb724' should be 'ZA4994_v3-0-0.dta'" – together with the exported corrected dataset; and the main folder now carries `EUframes_cy.csv` itself, the exact file this report loads. The official Multi100 component (osf.io/8rtwe) preserved only the earlier, uncorrected folder.
+
+Want to see it for yourself? `forensics.R` puts the as-submitted `rep_data.csv` (which gives −3.853) beside the corrected panel and localises the disagreement to 2009 in two short diffs. It is an optional exhibit, not a task – open it if you are curious.
+
+Coding can go wrong – even during a reanalysis. Keeping materials open and well documented is what lets a mistake be spotted and corrected. That is reproducibility working, not failing.
+:::
+
+------------------------------------------------------------------------
+
+::: {.callout-note title="Task 4 – Estimand and DAG"}
 Before estimating, say *precisely* what you are estimating. An estimand has two parts: a **unit-specific quantity** and a **target population** (Lundberg et al. 2021). State it outside any model.
 
 **TODO – complete the estimand sentence:**
@@ -137,192 +192,117 @@ plot_dag(dag)
 dagitty::adjustmentSets(dag, exposure = "unemployment", outcome = "framing")
 ```
 
-The starter graph returns `{ country, year }`. That is the whole point of the two-way fixed effects you will fit next: country fixed effects adjust for `country`, year fixed effects adjust for `year`.
+The starter graph returns `{ country, year }` – exactly what the two-way fixed effects you fitted in Task 3 absorb: country fixed effects adjust for `country`, year fixed effects adjust for `year`. The DAG and the model encode the same identification claim.
 
 **TODO – answer two questions in a sentence each:**
 
 1.  What do **country** and **year** fixed effects adjust for, in plain terms? *(country-constant traits, and shocks common to all countries in a year)*
 2.  What can they **not** fix? *(a time-varying, country-level confounder – e.g. GDP growth moving both unemployment and framing within a country over time)*
 
-Commit: `git commit -am "Task C: estimand + DAG + adjustment set"`.
+Whatever set your DAG returns becomes field 4 of your preregistration, next.
 :::
 
 ------------------------------------------------------------------------
 
-:::: {.callout-note title="Task D1 – Reproduce the constrained result"}
-Fit the Multi100-constrained model: cosmopolitan framing on (mean-centred) unemployment, with country and year fixed effects. We fit it **two ways** – with `plm` (what the published analyst used) and with `fixest::feols` (faster, and what the live demo uses). They should agree; that they do is itself a small robustness lesson.
+::: {.callout-note title="Task 5 – My preregistration"}
+The point of preregistration is that you commit to a choice **before** you see what it does. It stops you quietly picking the specification that happens to give the answer you wanted. Here the commitment is real in a mechanical sense too: the choices you declare in the cell below are remembered by the session, and every later cell reads them from here – the model builder refuses code that deviates from them.
 
-```{r}
-#| label: fit-rep
-# Mean-centre unemployment, as the published analysis did.
-rep <- rep |> mutate(unemp_c = unemp - mean(unemp, na.rm = TRUE))
+Make one choice on each axis of the specification menu – every axis is live, including the outcome **family** and the **predictor** – then run the cell. `claim_align <- TRUE` is the day's convention, applied automatically: negative framings are reverse-coded (1 − y) and growth's claim-expected sign is flipped, so 'supports the claim' reads as a negative sign for everyone.
 
-# plm: the published estimator.
-m_plm <- plm(
-  mcosmopolitan ~ unemp_c,
-  data   = rep,
-  index  = c("cntry", "year"),
-  effect = "twoways",
-  model  = "within"
-)
+Multi100's Task 2 fixed unemployment as the measure on a gaussian scale; this menu opens both. That is not a stretch beyond the project – Task 1 of Multi100 already shows three of the five analysts reaching for GDP-growth measures when the choice was theirs.
+:::
 
-# fixest: the same model, fixed effects after the | .
-m_feols <- feols(mcosmopolitan ~ unemp_c | cntry + year, data = rep)
-```
-
-```{r}
-#| label: tbl-rep
-#| tbl-cap: "The constrained model on the published rep_data.csv, two estimators."
-modelsummary(
-  list("plm (two-way FE)" = m_plm, "fixest (two-way FE)" = m_feols),
-  estimate  = "{estimate}",
-  statistic = "t = {statistic}",
-  gof_map   = c("nobs", "r.squared"),
-  coef_rename = c("unemp_c" = "Unemployment (centred)")
-)
-```
-
-You just recovered **t = −3.853** on `rep_data.csv`.
-
-::: {.callout-important title="Why the discrepancy?"}
-The result recorded for this analyst (C6HJR) in the Multi100 dataset is **t = −3.804**, not −3.853. Why is that?
-
-The original data-prep script read the EB 70.1 file (ZA4819) twice by mistake: once for 2008 (correct) and again in place of EB 72.4 (ZA4994) for 2009 (incorrect). **The analyst spotted this during the project and corrected it.** The recorded result came from the corrected pipeline. The annotation is preserved in the analyst's fork (`osf.io/6zqct`, folder `moreh_rep_vAPR2025/`): the script carries the note "APRIL 2025 – Mistake in dataset here; the dataset associated with 'eb724' should be 'ZA4994_v3-0-0.dta'". The official Multi100 component (`osf.io/8rtwe`) preserved only the earlier, uncorrected folder; the fork publishes the full trail.
-
-Coding can go wrong - even during a reanalysis! Keeping materials open and well documented helps spot any mistakes and correct them. That's the purpose of reproducibility.
+::: {.callout-important title="How this block maps to a real preregistration"}
+*A real preregistration, shortened. Each numbered comment maps to a question in the OSF "Preregistration Template from AsPredicted.org" (the eight-question short form). Because you are reanalysing data that already exist, field 2 also stands in for the prior-knowledge section of the secondary-data template (van den Akker et al. 2021) – the part AsPredicted leaves out.*
 :::
 
 ```{r}
-#| label: fit-corrected
-# The corrected panel: same construction, the right 2009 wave.
-ten <- read_csv("data/teney_panel.csv") |>
-  mutate(unemp_c = unemp - mean(unemp, na.rm = TRUE))
+#| label: prereg
+# ============================================================================
+# MY PREREGISTRATION – one specification, declared before seeing its result
+# ============================================================================
+# 1. The claim I am testing: .................................................
+# 2. The data + what I already know: EUframes_cy.csv (270 country-years,
+#    public); I know the constrained baseline gives t = -3.804.
+# 3. My one specification – one choice on each axis:
 
-m_corrected <- feols(mcosmo ~ unemp_c | cntry + year, data = ten)
+my_outcome     <- "mcosmo"     # mcosmo | mutil | mpos    (positive framings)
+                               # mcomm  | mlib  | mneg    (negative framings)
+my_family      <- "gaussian"   # gaussian | beta   (logit-link on the cell
+                               #                    means; beta reports z)
+my_predictor   <- "unemp"      # unemp | growth    (the claim-carrying measure)
+my_pred_form   <- "raw"        # raw | log   (growth: raw only; centring or
+                               #              z-scaling would leave t, r and p
+                               #              unchanged - not separate analyses)
+my_copredictor <- "none"       # none | growth (beside unemp) | unemp (beside growth)
+my_estimator   <- "fe_twoway"  # fe_twoway | fe_country | re | pooled_cl
+my_sample      <- "all"        # all | y2004_2008 | y2009_2013 | no_bailout | no_GR_ES
+my_weights     <- "none"       # none | n_cy   (re is never weighted)
+
+claim_align    <- TRUE         # the day's convention, applied automatically
+
+# 4. Why these controls, in one DAG-grounded sentence: .......................
+# 5. Supported if the claim-aligned coefficient is negative and p < .05;
+#    undermined if non-significant or positive. I will report what I get.
+
+prereg()   # checks every choice against the menu and records the declaration
 ```
 
-```{r}
-#| label: tbl-corrected
-#| tbl-cap: "The same constrained model on the corrected teney_panel.csv."
-modelsummary(
-  list("corrected (fixest)" = m_corrected),
-  estimate  = "{estimate}",
-  statistic = "t = {statistic}",
-  gof_map   = c("nobs", "r.squared"),
-  coef_rename = c("unemp_c" = "Unemployment (centred)")
-)
-```
-
-On the corrected panel the coefficient is **−0.00347** with **t = −3.804** – exactly the value recorded for analyst C6HJR in the Multi100 dataset. The constrained result finally reproduces. Now make it your own.
-
-Commit: `git commit -am "Task D1: reproduce the constrained result (t = -3.80)"`.
-::::
+An optional mirror form may be used to log preregistrations for the room – the link is shared in the session. It is not required: the cell above, rendered into this report, is your official preregistration.
 
 ------------------------------------------------------------------------
 
-::: {.callout-note title="Task D2 – Your analytical path (preregister, then run)"}
-Pick **one** deviation from the specification menu on the workshop site ([the spec menu](https://codemoreh.github.io/applied-replication/exercise/spec-menu.html)) – a different outcome scale, a different unemployment transform, adding GDP growth, a different estimator, a different sample window, or weights. Every option is *justifiable*; the discipline is choosing **with a reason**.
+::: {.callout-note title="Task 6 – Build and run your specification"}
+This is the **robustness** check, and it is the part your classmates cannot copy from you: together the room samples the multiverse of defensible analyses. You have declared your specification; now translate it into model syntax yourself.
 
-**TODO – write your choice and a two-sentence justification:**
-
-> **Our spec:** \_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_
->
-> **Why (2 sentences):** \_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_
-
-**Preregister it – this is the point of the task.** Commit your choice *before* you run it, with a message in this exact shape:
-
-``` sh
-git commit -am "prereg: <DV> ~ <IV> | <estimator> | <sample>"
-```
-
-*Only then* fill in the parameters below and run. The skeleton is a worked `fixest` example you adapt – change the variables, not the plumbing.
+Fill the outcome, the right-hand side, and the estimator code exactly as you preregistered them. `build_model()` knows your declaration and will not accept anything else; its error messages tell you what is off. Write the log form as `log(unemp)`, and add any co-predictor with `+`. You do **not** write the fixed-effects, clustering, or family syntax here – the estimator and family codes stand for it, and `run_spec()` expands them into the real fit.
+:::
 
 ```{r}
-#| label: my-spec
-# --- your choices (edit these) --------------------------------------------
-my_outcome  <- "mcosmo"     # e.g. "mcosmo" (constrained) or "mpos" (all positive)
-my_exposure <- "unemp_c"    # e.g. "unemp_c", "unemp", "log(unemp)"
-my_controls <- character(0) # e.g. "growth", or character(0) for none
-my_fe       <- c("cntry", "year")  # e.g. c("cntry","year"), or just "cntry"
-
-# --- build the formula and fit (you can leave this plumbing as is) ---------
-rhs <- paste(c(my_exposure, my_controls), collapse = " + ")
-fml <- as.formula(
-  paste(my_outcome, "~", rhs, "|", paste(my_fe, collapse = " + "))
-)
-
-my_model <- feols(fml, data = ten)
-my_model
+#| label: build-model
+my_model <- build_model(mcosmo ~ unemp, estimator = "fe_twoway")
 ```
+
+When the model is accepted, run it. `run_spec()` fits your preregistered specification for real – the estimator, family, sample and weights all expand into the matching `fixest`, `plm`, `betareg` or `glmmTMB` call – and prints its claim-aligned result:
+
+```{r}
+#| label: run-spec
+run_spec(my_model)
+```
+
+Read the output like an analyst: the coefficient and its claim-aligned partial *r* (below zero supports the claim). The five Multi100 analysts run from about the 16th percentile of the specification curve (the most strongly claim-supporting) to about the 68th (near the null); your result is about to join theirs on the class chart.
+
+**A second specification?** Edit the preregistration cell, rerun `prereg()`, rebuild, rerun. The mechanics allow it – but the label changes: your *first* declaration was a preregistration; everything after it is exploration. Saying which is which, out loud, is the entire discipline the day is about.
+
+------------------------------------------------------------------------
+
+::: {.callout-note title="Task 7 – Report to the class chart"}
+Your result travels to the room from your preregistered choices – there is nothing to fill in and nothing to transcribe. `report_result()` refits your declared specification, builds the spec label, and always submits on the claim-aligned scale the chart is drawn on. It prints your submission line and a pre-filled form link; open it and press **Send**. Your result appears as an open circle on the live Multiverse chart within seconds.
+:::
 
 ```{r}
 #| label: report
-# Build your one-click submission link to the class-results form.
-source("R/report_result.R")
-report_result(
-  my_model,
-  spec = "mcosmo ~ unemp_c | twoway-FE | all 2004–2013"  # describe YOUR spec
-)
+report_result()
 ```
 
-Run this, then click the submission link it prints – your result lands as a dot on the live [Multiverse](https://codemoreh.github.io/applied-replication/results.html) chart. (Do it now, or in Task E.)
-:::
+Run this, then open the submission link it prints – your result lands as a dot on the live [Multiverse](https://codemoreh.github.io/applied-replication/results.html) chart. If the form will not open on your machine, read the printed numbers to the facilitator and your dot still lands.
 
 ------------------------------------------------------------------------
 
-::: {.callout-note title="Task E – Publish and share"}
-Get your report online and your result onto the live chart.
-
-1.  **Render** one last time: `quarto render` (or just save while `quarto preview` is running).
-2.  **Commit** your work: in Positron's **Source Control** panel, stage the changes, write a message (e.g. `Task E: final render and result`), and commit.
-3.  **Push**: click **⋯ → Push** (or the sync arrows) in Source Control.
-4.  **Submit your result** (if you have not already): run the `report_result()` chunk above and click the link it prints – your dot appears on the live [Multiverse](https://codemoreh.github.io/applied-replication/results.html) chart.
-5.  **Share your repo:** post your repository URL to the [Discussion gallery](https://github.com/CodeMoreh/applied-replication/discussions).
-6.  If you enabled Pages (Settings → Pages → Source: "GitHub Actions"), your live report appears at `https://<your-username>.github.io/replication-lab/` within a minute or two of the push.
-
-Tick the passport boxes in `README.md` as you complete them – with a commit, of course.
+::: {.callout-note title="Taking it home"}
+You did the whole analysis in a plain folder, with no version control and nothing to sign in to. Putting your own work under version control and publishing the rendered report to a live URL is the natural next step – a git and GitHub self-study module walks it click by click on the workshop site: [Git and GitHub self-study](https://codemoreh.github.io/applied-replication/companion/git-github.html). The `.github/` and `.devcontainer/` folders already in this workspace are what make that path work once the folder is a repository again.
 :::
 
-------------------------------------------------------------------------
+::: {.callout-note title="Going further (optional)"}
+Time to spare? Each of these is a real fit you can run in this workspace.
 
-::: {.callout-note title="Task F – Stretch (optional)"}
-Time to spare? Pick one.
+- **A second, exploratory specification.** Change one axis in the preregistration cell, rerun `prereg()`, `build_model()` and `run_spec()`, then `report_result()` it. Two points on the class multiverse instead of one – the first preregistered, the second explicitly exploratory.
 
-The Teney (2016) paper went through all three Rs in the SCORE programme – and got three different verdicts. The same paper's push-button reproduction **failed** (the author-provided Stata code referenced file names that did not match what was available for download), and its preregistered secondary-data replication returned a **sign flip** (a positive coefficient, b = 0.002, t = 2.004, in the opposite direction to the original). You can explore the full SCORE dossier – reproduction, robustness, and replication side by side – at <https://osf.io/h7432/> (SCORE parent node for this paper).
+- **The mirror-image expectation.** The claim is about *positive* framing. Preregister a **negative** dimension instead (`mneg`, or communitarian `mcomm`): if poor economic performance lowers positive framing, does it *raise* negative framing? With `claim_align <- TRUE` the reverse-coding (1 − y) is applied for you, so the result restates itself on the same scale as the rest of the curve.
 
-- **A second spec.** Change `my_outcome`, `my_exposure`, or `my_fe` above, rerun, and `report_result()` it. Two points on the class multiverse instead of one.
+- **Beyond unemployment.** Preregister `my_predictor <- "growth"` (GDP growth, the claim carrier for three of the five original analysts): the claim now expects a *positive* growth coefficient on the positive framings, and the sign convention flips once more automatically. The growth mirror of the Task-3 anchor (`mpos ~ growth + unemp`, two-way FE) gives b = +0.00167, t = 1.59 – non-significant.
 
-- **Fixed vs random effects.** Fit the random-effects version with `plm` and compare with a Hausman test – if it rejects, the fixed-effects estimate is the safer one.
-
-  ```{r}
-  #| label: hausman
-  #| eval: false
-  # Set eval: true to run. Compares within (FE) vs random effects.
-  re <- plm(mcosmo ~ unemp_c, data = ten, index = c("cntry", "year"),
-            effect = "twoways", model = "random")
-  fe <- plm(mcosmo ~ unemp_c, data = ten, index = c("cntry", "year"),
-            effect = "twoways", model = "within")
-  phtest(fe, re)
-  ```
-
-- **Weight by sample size.** Country-years rest on very different respondent counts (`n_cy`); weight the model by `n_cy` and see whether the estimate moves.
-
-  ```{r}
-  #| label: weighted
-  #| eval: false
-  feols(mcosmo ~ unemp_c | cntry + year, data = ten, weights = ~ n_cy)
-  ```
-
-- **The mirror-image expectation.** The claim is about *positive* framing. Look at a **negative** dimension instead (`mneg`, or communitarian `mcomm`): if poor economic performance lowers positive framing, does it *raise* negative framing? Check the sign.
-
-  ```{r}
-  #| label: mirror
-  #| eval: false
-  feols(mneg ~ unemp_c | cntry + year, data = ten)
-  ```
-
-- **New data + new analysis?** You could even attempt to import some new country-level variables to test alongside the ones available in the dataset – for example, importing data from the World Bank, for which there is even a dedicated `R` package (see [https://vincentarelbundock.github.io/WDI/](https://vincentarelbundock.github.io/WDI/)) –, or download data for more recent years from the Eurobarometer to test for *generalisability*.
-
+- **The full SCORE dossier.** OA's paper went through all three Rs in the SCORE programme and got three different verdicts: its push-button reproduction **failed** (the author-provided Stata code referenced file names that did not match what was available), and its preregistered secondary-data replication returned a **sign flip** (a positive coefficient, b = 0.002, p = .046, in the opposite direction to the original). Explore reproduction, robustness, and replication side by side at <https://osf.io/h7432/>.
 :::
 
 ------------------------------------------------------------------------
@@ -333,4 +313,6 @@ Teney, C. (2016). Does the EU economic crisis undermine subjective Europeanizati
 
 Lundberg, I., Johnson, R., & Stewart, B. M. (2021). What is your estimand? Defining the target quantity connects statistical evidence to theory. *American Sociological Review*, 86(3), 532–565.
 
-Aczel, B., et al. (2026). The robustness of social science findings to analytical variability (Multi100). *Nature*, 652, 135–142.
+van den Akker, O., Weston, S., Campbell, L., et al. (2021). Preregistration of secondary data analysis: A template and tutorial. *Meta-Psychology*, 5, 2625.
+
+Aczel, B., Szaszi, B., Clelland, H. T., et al. (2026). Investigating the analytical robustness of the social and behavioural sciences (Multi100). *Nature*, 652(8108), 135–142.

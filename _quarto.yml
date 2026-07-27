@@ -3,7 +3,7 @@ project:
   output-dir: _site
 
 website:
-  title: "Replication lab – Teney (2016)"
+  title: "Replication lab – the EU-frames case"
 
 # freeze: auto means a chunk is only re-run when its code changes. The committed
 # _freeze/ folder lets GitHub Actions publish without re-executing everything –

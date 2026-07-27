@@ -1,50 +1,60 @@
 # Replication lab
 
-## **What is this?** 
+## **What is this?**
 
-A ready-to-run replication exercise for the workshop "Applied replication for data skills" (Open Research Conference, Newcastle University, 16 June 2026). You reproduce one of the reanalyses that were part of the Multi100 project, whose results were recently published in *Nature* (Aczel et al. 2026), and test the robustness of a published claim from Teney (2016) – using the same data, tools, and workflow the Multi100 project used. The report you build (`index.qmd`) renders to a website you publish yourself; every task is a small, git-committable step that doubles as a git lesson.
+A ready-to-run replication exercise for the workshop "Applied Replication for Data Skills". You reproduce one of the reanalyses from the Multi100 project, whose results were recently published in *Nature* (Aczel et al. 2026), and test the robustness of a published claim from the target article – using the same data, tools, and workflow the project used. You are analyst no. 6, and the code you work with is the coordinator's own submitted analysis.
 
-> The template renders out of the box: the data ship inside `data/`, so your very first `quarto preview` works with no edits and no network.
+The report you build is `index.qmd`. It renders out of the box: the data ship inside `data/`, so your very first `quarto preview` works with no edits and no network.
 
 ------------------------------------------------------------------------
 
-## In the room: three steps
+## In the room: five steps
 
-1.  **Make it yours.** On this template's GitHub page, click the green **Use this template → Create a new repository**. Name it `replication-lab`, set it to **Public** (public repos get free Pages and free Actions minutes – and you keep a portfolio piece), and create it under *your own* account.
+This workspace is a plain folder – no accounts, no version control, nothing to sign in to. You download it, unzip it, and work inside it.
 
-2.  **Clone it in Positron (or another IDE, but then make sure it's all optimised for R work).** In Positron: **File → New Folder from Git…**, paste your new repo's URL, and pick a local folder. Sign in to GitHub through the **Accounts** menu (browser OAuth – no tokens needed). If you have never set your git identity, run once in the terminal:
+1.  **Download the workspace.** On the template's GitHub page, click the green **Code** button, then **Download ZIP** – or use the direct link `https://github.com/CodeMoreh/replication-lab/archive/refs/heads/main.zip`. Save it somewhere you own (Desktop or Documents).
 
-    ``` sh
-    git config --global user.name  "Your Name"
-    git config --global user.email "you@example.com"
+2.  **Unzip it.** Extract the ZIP to a real folder (on Windows, "Extract All" – do not work inside the compressed preview). You will get a folder called `replication-lab-main` containing `index.qmd`, `data/`, `R/`, and this file.
+
+3.  **Open the folder in Positron.** **File → Open Folder…** and pick the unzipped folder. (Any IDE set up for R works, but Positron is the one the walkthrough uses.)
+
+4.  **Restore the packages.** This workspace does not pin versions with a lockfile – instead, `R/check_setup.R` tells you exactly what you need. In the R console:
+
+    ``` r
+    source("R/check_setup.R")
     ```
 
-3.  **Preview the report.** In the Positron terminal:
+    It prints an `[OK]` / `[FAIL]` line per check (R version, Quarto, the required packages, the data files). If any packages are missing, it prints the one line that installs them. Run that line, then re-run the check.
+
+5.  **Open the report and preview it.** Open `index.qmd`, then in the Positron terminal:
 
     ``` sh
     quarto preview
     ```
 
-    The skeleton report opens in a browser. That is your starting point – now work through Tasks A–F inside `index.qmd`.
-
-> **Publishing (one-time):** in your repo's **Settings → Pages → Source**, choose **"GitHub Actions"**. From then on, every push rebuilds and publishes your report to `https://<your-username>.github.io/replication-lab/`, free.
+    The skeleton report opens in a browser. That is your starting point – now work through the tasks inside `index.qmd`.
 
 ------------------------------------------------------------------------
 
-## Skills passport
+## A note on version control
 
-Tick a box when you have done the thing – and tick it *with a commit* (edit this file, commit, push), so even the checklist helps you practice git. The ten boxes map to the workshop's learning objectives.
+This folder is deliberately git-free for the session. There is nothing to commit, nothing to push, and no account to set up – so the whole room can get to the analysis in minutes, whatever their setup.
 
-- [ ] **1. The three Rs.** I can distinguish reproducibility, robustness, and replicability – and say why the distinction matters. *(Task A)*
-- [ ] **2. Repo from a template.** I created this repository from the template and cloned it in Positron. *(Steps 1–2 above)*
-- [ ] **3. Data like a researcher.** I retrieved the published data programmatically from OSF (`R/get_data.R`). *(Task B)*
-- [ ] **4. Small, frequent commits.** I have made at least five commits with meaningful messages. *(throughout)*
-- [ ] **5. State the estimand.** I wrote the claim's estimand: a unit-specific quantity plus a target population. *(Task C)*
-- [ ] **6. Encode assumptions in a DAG.** I completed the DAG and derived an adjustment set with `adjustmentSets()`. *(Task C)*
-- [ ] **7. Preregister before running.** I committed my analytical choice *before* running it, with a `prereg:` commit message. *(Task D2)*
-- [ ] **8. Fit and report a model.** I fitted a panel model and reported it correctly (coefficient table + standardised result row). *(Tasks D1–D2)*
-- [ ] **9. Publish a reproducible report.** I rendered the Quarto report and published it via GitHub Pages. *(Task E)*
-- [ ] **10. Locate yourself in the multiverse.** I submitted my result via the `report_result()` link and can see my dot on the live multiverse among the others. *(Task E + debrief)*
+The workspace *came from* a GitHub repository (`CodeMoreh/replication-lab`), and putting your own work under version control – and publishing the rendered report to a live URL – is the natural take-home step. The workshop site has a self-study companion module that walks it click by click: **Git and GitHub self-study** at <https://codemoreh.github.io/applied-replication/companion/git-github.html>. The `.github/` and `.devcontainer/` folders already in this workspace are what make that path work once the folder is a repository again; you can ignore them for the session.
+
+------------------------------------------------------------------------
+
+## What you will do today
+
+The tasks in `index.qmd` map to the day's learning objectives:
+
+- **The three Rs.** Distinguish reproducibility, robustness, and replicability – and say why the distinction matters. *(Task 1)*
+- **Meet the data.** Read the corrected country-year panel and look at the outcome over time. *(Task 2)*
+- **Reproduce the recorded result.** Fit the two-way fixed-effects model on the corrected panel and confirm **t = −3.804**, the value on record for this analyst. A collapsed callout tells the story of the *other* number in the trail, −3.853, and how the analyst caught and corrected it. *(Task 3)*
+- **State the estimand and encode it in a DAG.** Write the target quantity, then derive an adjustment set with `adjustmentSets()`. *(Task 4)*
+- **Preregister, then build and run.** Complete the preregistration block, then translate it into a real fit and read the claim-aligned result. *(Tasks 5–6)*
+- **Locate yourself in the multiverse.** Submit your result with `report_result()` and watch your dot land among the others. *(Task 7)*
+- **Go further.** A second, exploratory specification, the mirror-image expectation, GDP growth as the predictor, or the full SCORE dossier. *(Going further)*
 
 ------------------------------------------------------------------------
 
@@ -52,8 +62,19 @@ Tick a box when you have done the thing – and tick it *with a commit* (edit th
 
 - **Workshop site:** https://codemoreh.github.io/applied-replication/
 - **Submit your result:** run `report_result()` – it prints a one-click link that drops your result onto the live multiverse at https://codemoreh.github.io/applied-replication/results.html
-- **Discussion (help & repo-URL gallery):** https://github.com/CodeMoreh/applied-replication/discussions – post your repository URL here, and ask for help if you get stuck.
-- **The OSF analyst fork (Task B fetches from here):** https://osf.io/6zqct/ – the analyst's maintained fork, which adds the corrected April 2025 analysis. The official Multi100 archival record is at https://osf.io/8rtwe/.
+- **Take-home git/GitHub path:** https://codemoreh.github.io/applied-replication/companion/git-github.html
+- **The OSF analyst fork:** https://osf.io/6zqct/ – the analyst's maintained fork, which adds the corrected April 2025 analysis. The official Multi100 archival record is at https://osf.io/8rtwe/.
+
+------------------------------------------------------------------------
+
+## Notes for the repository maintainer
+
+This workspace is published as the "Use this template" repository `CodeMoreh/replication-lab`. The two folders that serve the take-home / publish path:
+
+- `.devcontainer/devcontainer.json` – a Codespaces / dev-container image (R + Quarto + the package list) so the repo can be opened and rendered in the cloud with no local install.
+- `.github/workflows/publish.yml` – renders the report and publishes it to GitHub Pages on every push, once **Settings → Pages → Source** is set to **"GitHub Actions"**. It installs R and re-runs the chunks, so a participant's edits show up.
+
+Neither is needed for the in-room zip route. Keep `data/` and `data/EUframes_cy_codebook.md` in sync with the workshop repository's `data/`.
 
 ------------------------------------------------------------------------
 

@@ -6,7 +6,7 @@
       "version": "1.9.36"
     }
   },
-  "postCreateCommand": "Rscript -e \"install.packages(c('dplyr','readr','ggplot2','broom','fixest','plm','dagitty','ggdag','modelsummary','osfr'), repos='https://packagemanager.posit.co/cran/__linux__/jammy/latest')\"",
+  "postCreateCommand": "Rscript -e \"install.packages(c('dplyr','readr','ggplot2','broom','fixest','plm','dagitty','ggdag','modelsummary','osfr','betareg'), repos='https://packagemanager.posit.co/cran/__linux__/jammy/latest')\"",
   "customizations": {
     "vscode": {
       "extensions": [
