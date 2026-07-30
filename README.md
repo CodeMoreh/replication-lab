@@ -40,7 +40,7 @@ This workspace is a plain folder – no accounts, no version control, nothing to
 
 This folder is deliberately git-free for the session. There is nothing to commit, nothing to push, and no account to set up – so the whole room can get to the analysis in minutes, whatever their setup.
 
-The workspace *came from* a GitHub repository (`CodeMoreh/replication-lab`), and putting your own work under version control – and publishing the rendered report to a live URL – is the natural take-home step. The workshop site has a self-study companion module that walks it click by click: **Git and GitHub self-study** at <https://codemoreh.github.io/applied-replication/companion/git-github.html>. The `.github/` and `.devcontainer/` folders already in this workspace are what make that path work once the folder is a repository again; you can ignore them for the session.
+The workspace *came from* a GitHub repository (`CodeMoreh/replication-lab`), and putting your own work under version control – and publishing the rendered report to a live URL – is the natural take-home step. The workshop site has a self-study companion module that walks it click by click: **Git and GitHub self-study** at <https://codemoreh.github.io/applied-replication/companion/git-github.html>. The `.github/` and `.devcontainer/` folders already in this workspace are what make that path work once the folder is a repository again. You can ignore them for the session.
 
 ------------------------------------------------------------------------
 

@@ -11,18 +11,18 @@ The four framing scales follow Teney (2016: 623): for each respondent, the numbe
 Dimension item assignment (questionnaire item → dimension):
 
 | Dimension | Items |
-|---|---|
+|------------------------------------|------------------------------------|
 | Cosmopolitan (positive, non-materialist) | Peace; Democracy; Freedom to travel, study and work anywhere in the EU; Cultural diversity; Stronger say in the world |
 | Utilitarian (positive, materialist) | Economic prosperity; Social protection |
 | Communitarian (negative, non-materialist) | Unemployment; Loss of cultural identity; More crime; Not enough control at external borders |
 | Libertarian (negative, materialist) | Bureaucracy; Waste of money |
 
-**Provenance note.** This panel was rebuilt independently from the raw GESIS files, using the sixteen-wave inventory above. The as-submitted Multi100 artifact (`rep_data.csv`) is preserved unchanged alongside it; how the two builds relate is worked through during the workshop's Block 2 exercise.
+**Provenance note.** This panel was rebuilt independently from the raw GESIS files, using the sixteen-wave inventory above. The as-submitted Multi100 artefact (`rep_data.csv`) is preserved unchanged alongside it, and how the two builds relate is worked through during the workshop's Block 2.
 
 ## Variables
 
 | Variable | Description |
-|---|---|
+|------------------------------------|------------------------------------|
 | `country` | Country name |
 | `cntry` | ISO 3166 two-letter code (DE combines East/West samples; GB combines Great Britain and Northern Ireland) |
 | `year` | Survey year (2004–2013); years with two waves pool both |
@@ -39,4 +39,8 @@ Dimension item assignment (questionnaire item → dimension):
 
 ## Licence
 
-Derived aggregate data: CC BY 4.0. Underlying microdata: GESIS Eurobarometer terms apply. Macro indicators: World Bank Open Data (CC BY 4.0).
+Three different regimes apply to the three layers of this file.
+
+- **Derived aggregate data** (this file): CC BY 4.0.
+- **Underlying microdata**: GESIS Eurobarometer terms apply, and nothing individual-level may be redistributed.
+- **Macro indicators**: World Bank Open Data (CC BY 4.0).

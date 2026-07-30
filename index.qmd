@@ -72,7 +72,7 @@ Every task is a callout box with instructions, a **TODO** you complete, and code
 ***Scenario 3:*** A preregistered team tests the identical hypothesis on a *separate, much larger* dataset chosen to be theoretically equivalent, and gets results that contradict the original. Their conclusion is that the original analysis has failed to \_\_\_\_\_\_.
 ***Scenario 4:*** Instead of the survey data used by the original authors, another researcher tests the same underlying idea on social-media texts using a machine-learning classifier method that the original never used. To their surprise, the authors' original findings prove \_\_\_\_\_\_ and the researcher concludes that they provide a reliable middle-range theory of the phenomenon they investigate.
 
-*(Answers: 1 reproducibility – the activity is reproducibility even though it failed to match, so the verdict is 'not reproduced'; 2 arguably still reproducibility, a grey area – re-implementing on the same data in different software is a re-computation, though centring the predictor and differing estimator implementations nudge toward robustness; 3 replicability – same question, independent new data; 4 generalisability – the impostor, new data and a new method at once.)*
+*(Answers: 1 reproducibility – the activity is reproducibility even though it failed to match, so the verdict is 'not reproduced'; 2 arguably still reproducibility, a grey area – re-implementing on the same data in different software is a re-computation, though centring the predictor and differing estimator implementations nudge towards robustness; 3 replicability – same question, independent new data; 4 generalisability – the impostor, new data and a new method at once.)*
 :::
 
 ------------------------------------------------------------------------
@@ -156,7 +156,7 @@ The coefficient is **−0.00347** with **t = −3.804** – exactly the value re
 ::: {.callout-note collapse="true" title="The other number in the record – a story worth opening"}
 There is a second number in this analysis's public trail: **t = −3.853**. It is what the *first* submitted pipeline produced, and the gap to the −3.804 you just reproduced has a story.
 
-The as-submitted data-preparation script stacked sixteen Eurobarometer waves and read the EB 70.1 file (`ZA4819`) twice by mistake: once for 2008 (correct) and again in place of EB 72.4 (`ZA4994`) for 2009. The panel's 2009 rows were therefore a copy of the 2008 respondents – the two builds diverge on 2009 and nowhere else, and 2009 carried about half the respondents it should have. The analyst caught the slip during the project and corrected it; the recorded −3.804 comes from the corrected build – the very `EUframes_cy.csv` you are using.
+The as-submitted data-preparation script stacked sixteen Eurobarometer waves and read the EB 70.1 file (`ZA4819`) twice by mistake: once for 2008 (correct) and again in place of EB 72.4 (`ZA4994`) for 2009. The panel's 2009 rows were therefore a copy of the 2008 respondents – the two builds diverge on 2009 and nowhere else, and 2009 carried about half the respondents it should have. The analyst caught the slip during the project and corrected it. The recorded −3.804 comes from the corrected build – the very `EUframes_cy.csv` you are using.
 
 The whole trail is public in the analyst's fork (osf.io/6zqct): the `moreh_rep/` folder preserves the as-submitted pipeline; `moreh_rep_vAPR2025/` holds the corrected script – annotated "APRIL 2025 – Mistake in dataset here; the dataset associated with 'eb724' should be 'ZA4994_v3-0-0.dta'" – together with the exported corrected dataset; and the main folder now carries `EUframes_cy.csv` itself, the exact file this report loads. The official Multi100 component (osf.io/8rtwe) preserved only the earlier, uncorrected folder.
 
@@ -176,7 +176,7 @@ Before estimating, say *precisely* what you are estimating. An estimand has two 
 
 *(A defensible filling: the change in mean cosmopolitan framing within a country-year, for a one-percentage-point difference in that country's unemployment rate; across EU member states, 2004–2013.)*
 
-Now the identification assumptions. `R/dag_starter.R` builds a half-drawn DAG: the causal path and two confounder pairs are in; the more arguable arrows are listed as ready-to-paste lines. Open the file, uncomment any edges you believe, re-source it, and re-run `adjustmentSets()`.
+Now the identification assumptions. `R/dag_starter.R` builds the graph with `dagify()`, where every arrow is an ordinary R formula written the way you read a regression, effect on the left of the tilde and cause on the right. `framing ~ unemployment` is therefore the arrow unemployment → framing. The causal path and the two confounder pairs are switched on; the arguable arrows sit in the same call behind a `#`, each with a line of justification above it. Open the file, take the `#` off any arrow you believe, re-source, and re-run `adjustmentSets()`. A node joins the picture only once some arrow mentions it, so what you see is the graph you have committed to.
 
 ```{r}
 #| label: dag

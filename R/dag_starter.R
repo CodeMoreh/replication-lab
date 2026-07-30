@@ -1,25 +1,25 @@
-# ============================================================================
-# dag_starter.R – a half-built causal DAG for the claim under test
-# ----------------------------------------------------------------------------
-# This is the object you complete in Task 4. It encodes the identification
-# assumptions behind the claim "national unemployment lowers cosmopolitan EU
-# framing". The causal path of interest and the two assumed confounders are
-# already drawn; the more arguable arrows are present but COMMENTED OUT, each
-# tagged "uncomment if you believe this:". Your job is to decide which beliefs
-# you hold, uncomment the matching edges, re-source this file, and then run
-# dagitty::adjustmentSets() to read off what you must adjust for.
-#
+# ########################################################################### #
+# Title:        dag_starter.R – the half-built DAG for the claim under test
+# Purpose:      The object you complete in Task 4. It encodes the identification
+#               assumptions behind the claim "national unemployment lowers
+#               cosmopolitan EU framing": the causal path of interest and the
+#               two assumed confounder pairs are drawn, and the more arguable
+#               arrows sit in the same call, commented out. Uncomment the ones
+#               you believe, re-source, and read the adjustment set off the
+#               graph with dagitty::adjustmentSets().
+# Sourced by:   index.qmd (Task 4)
+# Author:       Chris Moreh
+# Last updated: 2026-07-30
+# ########################################################################### #
+
 # A one-line vocabulary, because the whole exercise turns on these three:
-#   confounder – a common cause of BOTH exposure and outcome; ADJUST for it
-#                (leaving it out biases the estimate).
+#   confounder – a common cause of BOTH exposure and outcome; ADJUST for it,
+#                because leaving it out biases the estimate.
 #   mediator   – sits ON the path from exposure to outcome; do NOT adjust when
-#                you want the TOTAL effect (adjusting removes part of the effect).
+#                you want the TOTAL effect, since adjusting removes part of it.
 #   collider   – a common EFFECT of two variables; adjusting OPENS a spurious
-#                path, so leave colliders alone unless you know what you are doing.
-#
-# Node names match the adjustmentSets() call in the report:
-#   exposure = "unemployment", outcome = "framing".
-# ============================================================================
+#                path, so leave colliders alone unless you know what you are
+#                doing.
 
 suppressPackageStartupMessages({
   library(dagitty)
@@ -27,74 +27,11 @@ suppressPackageStartupMessages({
   library(ggplot2)
 })
 
-# --- The DAG ----------------------------------------------------------------
-# dagitty's text syntax: one edge per line, "cause -> effect". dagitty does
-# NOT accept comments inside the dag{...} string, so the explanation lives in
-# R comments out here and the arrows you may want to add are listed below the
-# string as ready-to-paste lines.
-#
-# Node status in brackets ([exposure]/[outcome]) lets ggdag colour them.
-#
-# Edges already INCLUDED:
-#   unemployment -> framing      the causal path of interest.
-#   country -> unemployment      country-constant traits (history, size, EU
-#   country -> framing           tenure …) drive both local unemployment and
-#                                how people frame the EU – a confounder pair.
-#   year -> unemployment         EU-wide shocks in a given year (the crisis,
-#   year -> framing              common events) move both – the second pair.
-# Together these two confounder pairs are exactly what country + year fixed
-# effects soak up. Running adjustmentSets() on this graph returns { country,
-# year } – the fixed effects ARE the adjustment set.
-dag <- dagitty::dagitty('dag {
-  unemployment   [exposure]
-  framing        [outcome]
-  country
-  year
-  growth
-  bailout
-  politicisation
-
-  unemployment -> framing
-  country -> unemployment
-  country -> framing
-  year -> unemployment
-  year -> framing
-}')
-
-# --- Arrows you may or may not believe (TASK 4) -----------------------------
-# Each is a substantive claim about the world. If you hold one, add it to the
-# graph and re-run adjustmentSets() to watch your adjustment set change. The
-# tidy way to add an edge without rewriting the whole string:
-#
-#   dag <- dagitty::dagitty(paste0(sub("\\}\\s*$", "", dag),
-#                                  "growth -> unemployment\n}"))
-#
-# or simply paste the line(s) you believe straight into the dag{...} string
-# above and re-source this file.
-#
-# GROWTH as a TIME-VARYING confounder – a slump raises unemployment AND may
-# sour EU sentiment in the same year (a back-door that fixed effects, which
-# only remove country-constant and year-common variation, cannot close):
-#     growth -> unemployment
-#     growth -> framing
-#
-# BAILOUT as a MEDIATOR – unemployment triggers a financial-assistance
-# programme, which then shapes framing; adjusting for a mediator removes part
-# of the very effect you are after, so leave it out for the TOTAL effect:
-#     unemployment -> bailout
-#     bailout -> framing
-#
-# POLITICISATION of the EU by parties/elites as another cause of framing –
-# Multi100 instructed analysts to disregard it; is that defensible here?
-#     politicisation -> framing
-#
-# The time trend or the country driving growth itself:
-#     year -> growth
-#     country -> growth
-
-# --- Layout coordinates for a clean ggdag plot ------------------------------
-# Exposure left, outcome right, confounders above, the arguable nodes below –
-# so uncommented edges read tidily rather than crossing the figure.
+# --- Where the nodes sit ----------------------------------------------------
+# Exposure left, outcome right, the two assumed confounders above, the arguable
+# nodes below, so an uncommented edge reads tidily instead of crossing the
+# figure. Coordinates for nodes that no arrow mentions are simply ignored: they
+# are waiting here for the moment you bring the node into the graph.
 coords <- list(
   x = c(unemployment = 0, framing = 3,
         country = 1, year = 2,
@@ -103,20 +40,95 @@ coords <- list(
         country = 1.4, year = 1.4,
         growth = 0.8, bailout = -1.2, politicisation = -0.9)
 )
-dagitty::coordinates(dag) <- coords
 
-# --- A small helper so the report can draw the DAG in one call --------------
-# tidy_dagitty() + ggdag styling; colour by status (exposure/outcome) and
-# keep labels readable. Returns a ggplot object.
+# --- The graph --------------------------------------------------------------
+# Each arrow is an ordinary R formula, written EFFECT ~ CAUSE – the same
+# direction you read a regression in, and the reverse of how an arrow is drawn.
+# So `framing ~ unemployment` is the arrow unemployment -> framing. One arrow
+# per line means a leading # switches an arrow off and takes its comma with it,
+# which is the whole mechanic of Task 4.
+#
+# A node exists only if some arrow mentions it, so the candidates below stay off
+# the plot until you commit to one. That is the point rather than a limitation:
+# the picture shows the graph you actually believe.
+dag <- dagify(
+  # The causal path of interest.
+  framing ~ unemployment,
+
+  # Country-constant traits – history, size, EU tenure – drive both the local
+  # labour market and how people there frame the EU: the first confounder pair.
+  unemployment ~ country,
+  framing ~ country,
+
+  # EU-wide shocks in a given year, the crisis and other common events, move
+  # both: the second confounder pair. These two pairs are what country and year
+  # fixed effects soak up, which is why adjustmentSets() returns { country, year }
+  # and the two-way fixed-effects model you fitted in Task 3 IS that adjustment set.
+  unemployment ~ year,
+  framing ~ year,
+
+  # ----- Arrows you may or may not believe (TASK 4) -----
+  # Each one is a substantive claim about the world, not a modelling detail. Take
+  # the # off the arrows you hold, re-source this file, and watch the adjustment
+  # set move.
+
+  # GROWTH as a TIME-VARYING confounder: a slump raises unemployment and may sour
+  # EU sentiment in the same year – a back door that fixed effects, which remove
+  # only country-constant and year-common variation, cannot close.
+  # unemployment ~ growth,
+  # framing ~ growth,
+
+  # BAILOUT as a MEDIATOR: unemployment triggers a financial-assistance
+  # programme, which then shapes framing. Adjusting for a mediator strips out
+  # part of the very effect you are after, so leave it unadjusted if your
+  # estimand is the total effect.
+  # bailout ~ unemployment,
+  # framing ~ bailout,
+
+  # POLITICISATION of the EU by parties and elites as a cause of framing alone,
+  # with no route into unemployment. Multi100 instructed analysts to disregard
+  # it; is that defensible here?
+  # framing ~ politicisation,
+
+  # The year and the country driving growth itself. This only changes anything
+  # once the two growth arrows above are also live, and then it makes growth a
+  # descendant of the things the fixed effects already absorb.
+  # growth ~ year,
+  # growth ~ country,
+
+  exposure = "unemployment",
+  outcome  = "framing",
+  coords   = coords
+)
+
+# --- Draw it ----------------------------------------------------------------
+# One call for the report. Node names are too long to sit inside the circles, so
+# they are drawn as repelled labels; colour marks the exposure and the outcome
+# and everything else stays grey. Returns a ggplot object.
 plot_dag <- function(d = dag) {
-  ggdag::ggdag_status(d, text = FALSE, use_labels = "name") +
-    ggdag::theme_dag() +
-    ggplot2::scale_colour_manual(
+  ggdag::tidy_dagitty(d) |>
+    ggdag::node_status() |>
+    ggplot2::ggplot(ggplot2::aes(x = x, y = y, xend = xend, yend = yend)) +
+    ggdag::geom_dag_edges(
+      edge_colour = "grey45",
+      arrow_directed = grid::arrow(length = grid::unit(7, "pt"),
+                                   type = "closed")) +
+    # Nodes are labelled boxes rather than points with the name floating beside
+    # them: a name like "unemployment" does not fit inside any circle small
+    # enough to leave the arrows visible.
+    ggplot2::geom_label(
+      ggplot2::aes(label = name, fill = status),
+      colour = "white", fontface = "bold", size = 3.4, label.size = 0,
+      label.r = grid::unit(4, "pt"), label.padding = grid::unit(5, "pt")) +
+    ggplot2::scale_fill_manual(
       values = c(exposure = "#1b6ca8", outcome = "#d1495b"),
-      na.value = "grey70",
-      breaks = c("exposure", "outcome"),
-      name = NULL
-    ) +
-    ggplot2::guides(fill = "none") +
+      na.value = "grey55", breaks = c("exposure", "outcome"),
+      labels = c("exposure", "outcome"), name = NULL) +
+    # Without the override the legend keys carry geom_label's stand-in "a".
+    ggplot2::guides(fill = ggplot2::guide_legend(
+      override.aes = list(label = ""))) +
+    ggdag::theme_dag() +
+    ggplot2::scale_x_continuous(expand = ggplot2::expansion(mult = 0.25)) +
+    ggplot2::scale_y_continuous(expand = ggplot2::expansion(mult = 0.25)) +
     ggplot2::theme(legend.position = "bottom")
 }
