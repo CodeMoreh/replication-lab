@@ -66,8 +66,8 @@ if (length(missing) == 0) {
 # --- 4. data files present and readable -------------------------------------
 # The report renders offline because these ship inside the workspace. Confirm
 # they are here and that each reads as a country-year panel. EUframes_cy.csv is
-# the corrected panel every task fits against; rep_data.csv is the as-submitted
-# artefact the optional forensics.R exhibit puts beside it.
+# the panel every task fits against; rep_data.csv is the as-submitted Multi100
+# artefact, kept alongside it as provenance and used by no task.
 data_files <- c("data/EUframes_cy.csv", "data/rep_data.csv")
 for (f in data_files) {
   if (!file.exists(f)) {

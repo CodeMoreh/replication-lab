@@ -34,7 +34,7 @@ library(modelsummary)
 theme_set(theme_minimal(base_size = 12))
 options(scipen = 6, digits = 4)
 
-# The one working object: the corrected EU-frames country-year panel. Every
+# The one working object: the EU-frames country-year panel. Every
 # later task reads its choices from your preregistration and fits against this.
 euframes <- read_csv("data/EUframes_cy.csv", show_col_types = FALSE)
 
@@ -78,7 +78,7 @@ Every task is a callout box with instructions, a **TODO** you complete, and code
 ------------------------------------------------------------------------
 
 ::: {.callout-note title="Task 2 – Get the data and look at it"}
-The **EU-frames dataset** (`EUframes_cy.csv`) is the corrected country-year panel behind the whole exercise. It is already loaded as `euframes` in the setup chunk, and the copy in `data/` is byte-identical to the one published in the analyst's fork on OSF (osf.io/6zqct – "Multi100 \| Teney_EurSocioRev_2016 \| Analyst_C6HJR", main folder); the official Multi100 archival record is at osf.io/8rtwe.
+The **EU-frames dataset** (`EUframes_cy.csv`) is the country-year panel behind the whole exercise. It is already loaded as `euframes` in the setup chunk, and the copy in `data/` is byte-identical to the one published in the analyst's fork on OSF (osf.io/6zqct – "Multi100 \| Teney_EurSocioRev_2016 \| Analyst_C6HJR", main folder); the official Multi100 archival record is at osf.io/8rtwe.
 
 **TODO:** run the chunks, then read the small-multiples figure. Which countries trend down over 2004–2013? Note one in a comment.
 
@@ -140,7 +140,7 @@ tidy(m1)
 
 ```{r}
 #| label: tbl-corrected
-#| tbl-cap: "The constrained model on the corrected EUframes_cy.csv."
+#| tbl-cap: "The constrained model on EUframes_cy.csv."
 modelsummary(
   list("two-way FE (fixest)" = m1),
   estimate  = "{estimate}",
@@ -153,16 +153,12 @@ modelsummary(
 The coefficient is **−0.00347** with **t = −3.804** – exactly the value recorded for analyst C6HJR, reproduced from the published data and the published model. `feols` reports classical (IID) standard errors by default when two fixed-effect dimensions are present, which is why it matches the `plm` value the analyst used to three decimals.
 :::
 
-::: {.callout-note collapse="true" title="The other number in the record – a story worth opening"}
-There is a second number in this analysis's public trail: **t = −3.853**. It is what the *first* submitted pipeline produced, and the gap to the −3.804 you just reproduced has a story.
+::: {.callout-note collapse="true" title="Everyone gets the same number. So why did five analysts disagree?"}
+You reproduced the recorded value exactly, and so did everyone else in the room – because everyone ran the same code on the same file. Reproducibility is the cheap R.
 
-The as-submitted data-preparation script stacked sixteen Eurobarometer waves and read the EB 70.1 file (`ZA4819`) twice by mistake: once for 2008 (correct) and again in place of EB 72.4 (`ZA4994`) for 2009. The panel's 2009 rows were therefore a copy of the 2008 respondents – the two builds diverge on 2009 and nowhere else, and 2009 carried about half the respondents it should have. The analyst caught the slip during the project and corrected it. The recorded −3.804 comes from the corrected build – the very `EUframes_cy.csv` you are using.
+The five Multi100 analysts each wrote their own code for the same claim, and came back with five different answers, one of them not significant. Their pipelines are competent, well-organised work, so the spread is not a quality problem. It is what happens when a claim stated in words leaves several genuinely defensible quantities on the table, and different analysts estimate different ones without noticing they have chosen.
 
-The whole trail is public in the analyst's fork (osf.io/6zqct): the `moreh_rep/` folder preserves the as-submitted pipeline; `moreh_rep_vAPR2025/` holds the corrected script – annotated "APRIL 2025 – Mistake in dataset here; the dataset associated with 'eb724' should be 'ZA4994_v3-0-0.dta'" – together with the exported corrected dataset; and the main folder now carries `EUframes_cy.csv` itself, the exact file this report loads. The official Multi100 component (osf.io/8rtwe) preserved only the earlier, uncorrected folder.
-
-Want to see it for yourself? `forensics.R` puts the as-submitted `rep_data.csv` (which gives −3.853) beside the corrected panel and localises the disagreement to 2009 in two short diffs. It is an optional exhibit, not a task – open it if you are curious.
-
-Coding can go wrong – even during a reanalysis. Keeping materials open and well documented is what lets a mistake be spotted and corrected. That is reproducibility working, not failing.
+That is what Task 4 addresses. Naming the quantity you are after – the estimand – and drawing the causal graph your adjustment set follows from is how you make the choice visible instead of accidental.
 :::
 
 ------------------------------------------------------------------------

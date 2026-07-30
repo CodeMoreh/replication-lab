@@ -2,9 +2,9 @@
 # Title:        Working script – the EU-frames robustness exercise, plain R
 # Purpose:      The same seven tasks as index.qmd, as a script you can step
 #               through in the console: reproduce the recorded result on the
-#               corrected panel (t = -3.804), then preregister one specification
+#               EU-frames panel (t = -3.804), then preregister one specification
 #               and fit and report it. Every fit is live, on `euframes`.
-# Reads:        data/EUframes_cy.csv   (the corrected EU-frames country-year panel)
+# Reads:        data/EUframes_cy.csv   (the EU-frames country-year panel)
 # Writes:       – (prints results to the console; report_result() prints a link)
 # Author:       Chris Moreh
 # Last updated: 2026-07-19
@@ -48,12 +48,6 @@ euframes <- euframes |>
 # for analyst C6HJR, reproduced from the published data and the published model.
 m1 <- feols(mcosmo ~ unemp_c | cntry + year, data = euframes)
 tidy(m1)
-
-# A second number sits in this analysis's public trail: t = -3.853, from the
-# first submitted pipeline, which read one Eurobarometer wave twice and so
-# duplicated 2008 into 2009. The analyst caught and corrected it during the
-# project; the corrected build is the EUframes_cy.csv loaded above. forensics.R
-# lays the two builds side by side if you want to see the difference yourself.
 
 ## ---- Task 5: preregister one specification --------------------------------
 

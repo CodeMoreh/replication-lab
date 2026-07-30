@@ -7,7 +7,7 @@
 #               claim-aligned result; report_result() sends that result to the
 #               live class chart. Every fit is a live estimation on `euframes` –
 #               there is no pre-computed grid behind these numbers.
-# Reads:        the `euframes` object in the calling environment (the corrected
+# Reads:        the `euframes` object in the calling environment (the
 #               EU-frames country-year panel)
 # Sourced by:   index.qmd and working_script.R (source("R/spec_tools.R"))
 # Author:       Chris Moreh

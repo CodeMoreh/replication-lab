@@ -14,8 +14,8 @@
 #
 # Note on OSF nodes: the analyst's fork is osf.io/6zqct ("Multi100 |
 # Teney_EurSocioRev_2016 | Analyst_C6HJR"), maintained for educational use; its
-# main folder carries EUframes_cy.csv (the corrected panel). The official
-# Multi100 archival record is osf.io/8rtwe (the uncorrected folder only).
+# main folder carries EUframes_cy.csv, the panel this exercise uses. The
+# official Multi100 archival record is osf.io/8rtwe.
 #
 # Usage:
 #   source("R/get_data.R")   # writes/ensures data/EUframes_cy.csv

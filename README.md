@@ -49,8 +49,8 @@ The workspace *came from* a GitHub repository (`CodeMoreh/replication-lab`), and
 The tasks in `index.qmd` map to the day's learning objectives:
 
 - **The three Rs.** Distinguish reproducibility, robustness, and replicability – and say why the distinction matters. *(Task 1)*
-- **Meet the data.** Read the corrected country-year panel and look at the outcome over time. *(Task 2)*
-- **Reproduce the recorded result.** Fit the two-way fixed-effects model on the corrected panel and confirm **t = −3.804**, the value on record for this analyst. A collapsed callout tells the story of the *other* number in the trail, −3.853, and how the analyst caught and corrected it. *(Task 3)*
+- **Meet the data.** Read the country-year panel and look at the outcome over time. *(Task 2)*
+- **Reproduce the recorded result.** Fit the two-way fixed-effects model on the panel and confirm **t = −3.804**, the value on record for this analyst. *(Task 3)*
 - **State the estimand and encode it in a DAG.** Write the target quantity, then derive an adjustment set with `adjustmentSets()`. *(Task 4)*
 - **Preregister, then build and run.** Complete the preregistration block, then translate it into a real fit and read the claim-aligned result. *(Tasks 5–6)*
 - **Locate yourself in the multiverse.** Submit your result with `report_result()` and watch your dot land among the others. *(Task 7)*
@@ -63,7 +63,7 @@ The tasks in `index.qmd` map to the day's learning objectives:
 - **Workshop site:** https://codemoreh.github.io/applied-replication/
 - **Submit your result:** run `report_result()` – it prints a one-click link that drops your result onto the live multiverse at https://codemoreh.github.io/applied-replication/results.html
 - **Take-home git/GitHub path:** https://codemoreh.github.io/applied-replication/companion/git-github.html
-- **The OSF analyst fork:** https://osf.io/6zqct/ – the analyst's maintained fork, which adds the corrected April 2025 analysis. The official Multi100 archival record is at https://osf.io/8rtwe/.
+- **The OSF analyst fork:** https://osf.io/6zqct/ – the analyst's maintained fork, carrying the working materials and the panel this workspace uses. The official Multi100 archival record is at https://osf.io/8rtwe/.
 
 ------------------------------------------------------------------------
 
