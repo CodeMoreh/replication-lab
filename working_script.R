@@ -1,13 +1,15 @@
 # ########################################################################### #
 # Title:        Working script – the EU-frames robustness exercise, plain R
-# Purpose:      The same seven tasks as index.qmd, as a script you can step
-#               through in the console: reproduce the recorded result on the
-#               EU-frames panel (t = -3.804), then preregister one specification
+# Purpose:      The same five tasks as index.qmd, as a script you can step
+#               through in the console: check the setup, meet the panel and
+#               its causal graph, reproduce the recorded result (t = -3.804),
+#               explore the specification menu, then declare one specification
 #               and fit and report it. Every fit is live, on `euframes`.
 # Reads:        data/EUframes_cy.csv   (the EU-frames country-year panel)
-# Writes:       – (prints results to the console; report_result() prints a link)
+# Writes:       – (prints results to the console; the submit helpers print a
+#               pre-filled form link)
 # Author:       Chris Moreh
-# Last updated: 2026-07-19
+# Last updated: 2026-07-31
 # ########################################################################### #
 
 # The code you work through is analyst C6HJR's own submitted analysis, adapted
@@ -49,6 +51,24 @@ euframes <- euframes |>
 m1 <- feols(mcosmo ~ unemp_c | cntry + year, data = euframes)
 tidy(m1)
 
+## ---- Task 4: explore the menu ---------------------------------------------
+
+# Nothing here commits you to anything. try_spec() takes one argument per axis
+# and every one already carries the baseline you just reproduced, so changing
+# one thing means changing one argument.
+try_spec()                          # the baseline itself
+try_spec(outcome   = "mpos")        # all positive framings, not cosmopolitan alone
+try_spec(estimator = "pooled_cl")   # no between-country comparison absorbed
+try_spec(sample    = "no_bailout")  # drop the assistance-programme countries
+try_spec(weights   = "n_cy")        # weight cells by respondents behind them
+
+# The running log of everything you have tried – the small multiverse you
+# just built. Only the axes that actually varied are printed.
+my_experiments()
+
+# Send the most recent one to the class chart, labelled as exploration.
+submit_exploration()
+
 ## ---- Task 5: preregister one specification --------------------------------
 
 # One choice on each axis of the menu – every axis live, including the outcome
@@ -68,7 +88,7 @@ claim_align    <- TRUE         # the day's convention, applied automatically
 
 prereg()   # checks every choice against the menu and records the declaration
 
-## ---- Task 6: build and run the specification ------------------------------
+## ---- Task 5, continued: build, run and report -----------------------------
 
 # Translate the declaration into model syntax yourself: the outcome, the
 # right-hand side, the estimator code. build_model() refuses anything that does
@@ -77,7 +97,6 @@ prereg()   # checks every choice against the menu and records the declaration
 my_model <- build_model(mcosmo ~ unemp, estimator = "fe_twoway")
 run_spec(my_model)
 
-## ---- Task 7: report to the class chart ------------------------------------
 
 # Argument-free and prereg-driven: it refits, builds the spec label, and always
 # submits on the claim-aligned scale the chart is drawn on. Open the printed
