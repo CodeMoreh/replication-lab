@@ -1,7 +1,7 @@
 # ########################################################################### #
 # Title:        spec_tools.R – explore, preregister, fit and report
-# Purpose:      The specification menu, its validation, and the helpers the
-#               report and working script use, in two groups.
+# Purpose:      The specification menu, its validation, and the helpers that
+#               the report and the working script use, in two groups.
 #
 #               EXPLORATORY (Task 4), where nothing is committed: try_spec()
 #               fits any specification from arguments that default to the
@@ -19,15 +19,15 @@
 #               EU-frames country-year panel)
 # Sourced by:   index.qmd and working_script.R (source("R/spec_tools.R"))
 # Author:       Chris Moreh
-# Last updated: 2026-07-31
+# Last updated: 2026-08-25
 # ########################################################################### #
 
 # The specification menu – one axis per line, every option a defensible choice.
 # The outcome family (gaussian | beta) and the predictor (unemp | growth) are
 # full first-class axes here, on the same footing as the estimator or the
-# sample. Multi100's Task 2 fixed unemployment on a gaussian scale; the workshop
-# opens both, and Task 1 of Multi100 already shows three of five analysts
-# reaching for GDP measures when the choice was theirs.
+# sample. Task 2 of Multi100 fixed unemployment on a gaussian scale; the
+# workshop opens both, and Task 1 of Multi100 already shows three of five
+# analysts reaching for GDP measures when the choice was theirs.
 .neg_framings <- c("mcomm", "mlib", "mneg")
 
 .menu <- list(
@@ -47,9 +47,9 @@
   re         = "random effects",
   pooled_cl  = "pooled OLS, clustered by country")[[e]]
 
-# The claim-carrying predictor's term as it appears in a formula and in the
-# fitted coefficient table: log(unemp) when the log form is chosen, else the
-# bare variable name.
+# The term for the claim-carrying predictor, as it appears in a formula and in
+# the fitted coefficient table: log(unemp) when the log form is chosen, else
+# the bare variable name.
 .main_term <- function(ch) {
   if (ch$my_predictor == "unemp" && ch$my_pred_form == "log") "log(unemp)"
   else ch$my_predictor
@@ -58,7 +58,7 @@
 # --- validation ------------------------------------------------------------
 # Two entry points into the same rules. .validate() takes a named list, which
 # is how the exploratory try_spec() supplies its arguments; .check_choices()
-# reads the eight my_* choices and claim_align out of the caller's environment,
+# reads the eight my_* choices and claim_align out of the calling environment,
 # which is how the declared flow reads the preregistration block. One set of
 # rules means an error message learned in Task 4 is the same in Task 5.
 .validate <- function(ch, as_args = FALSE) {
@@ -111,19 +111,21 @@
   )
 }
 
-# The claim-alignment factor: negative framings are reverse-coded (1 - y), and
-# growth's claim-expected sign is positive, so each flips the reported sign.
-# Reverse-coding 1 - y is exact for both families (for beta, logit(1 - mu) =
-# -logit(mu)), so multiplying the fitted b, statistic and r by this factor
-# gives the same claim-aligned numbers as refitting on the reverse-coded
-# outcome – the standard errors and |statistic| are untouched either way.
+# The claim-alignment factor: negative framings are reverse-coded (1 - y),
+# and the claim-expected sign for growth is positive, so each flips the
+# reported sign. Reverse-coding 1 - y is exact for both families (for beta,
+# logit(1 - mu) = -logit(mu)), so multiplying the fitted b, statistic and r
+# by this factor gives the same claim-aligned numbers as refitting on the
+# reverse-coded outcome – the standard errors and |statistic| are untouched
+# either way.
 .flip <- function(ch)
   (if (ch$my_outcome %in% .neg_framings) -1 else 1) *
   (if (ch$my_predictor == "growth") -1 else 1)
 
 # --- the live fit ----------------------------------------------------------
-# Fits the specification `ch` describes as a real model on `euframes` and
-# returns the claim-carrying predictor's coefficient on the RAW outcome scale.
+# Fits the specification that `ch` describes as a real model on `euframes` and
+# returns the coefficient of the claim-carrying predictor on the RAW outcome
+# scale.
 # gaussian: fixest for the fixed-effects designs (classical SE, matching the
 # published plm value) and the clustered pooled model, plm for random effects.
 # beta (logit link): betareg with country/year dummies for the fixed-effects
@@ -201,9 +203,9 @@
   out
 }
 
-# The one-line spec label the class chart reads – outcome (tagged _ca when a
-# negative framing is reverse-coded), predictor and form, any co-predictor,
-# estimator, sample, weights and family.
+# The one-line spec label that the class chart reads – outcome (tagged _ca
+# when a negative framing is reverse-coded), predictor and form, any
+# co-predictor, estimator, sample, weights and family.
 .spec_line <- function(ch) {
   neg <- ch$my_outcome %in% .neg_framings
   paste0(ch$my_outcome, if (neg) "_ca" else "", " ~ ",
@@ -217,7 +219,7 @@
 # try_spec() is the deliberately unconstrained twin of the declared flow: it
 # takes its choices as arguments rather than from a preregistration, so trying
 # a specification costs one keystroke and commits to nothing. Every argument
-# defaults to the reproduced baseline, which makes "change one thing" literal.
+# defaults to the reproduced baseline, which makes 'change one thing' literal.
 
 .tried <- new.env(parent = emptyenv())
 .tried$log <- NULL
@@ -258,9 +260,9 @@ try_spec <- function(outcome     = "mcosmo",
   invisible(row)
 }
 
-# Prints the running log of everything try_spec() has fitted. Only the axes
-# that actually varied are shown: repeating the constant ones on every row
-# buries the contrast that makes the table worth printing.
+# Prints the running log of everything that try_spec() has fitted. Only the
+# axes that actually varied are shown: repeating the constant ones on every
+# row buries the contrast that makes the table worth printing.
 my_experiments <- function() {
   if (is.null(.tried$log)) {
     cat("Nothing tried yet – call try_spec() at least once.\n")
@@ -292,7 +294,7 @@ submit_exploration <- function() {
           "Your exploratory submission (claim-aligned, the last specification you tried):")
 }
 
-# --- the declared helpers the report uses ----------------------------------
+# --- the declared helpers that the report uses -----------------------------
 
 # Task 5: record the one declared specification.
 prereg <- function() {
@@ -314,8 +316,9 @@ prereg <- function() {
   invisible(ch)
 }
 
-# Task 6a: check the hand-written formula against the preregistration. Returns
-# a ticket the fit step consumes; it does not fit anything itself.
+# Task 5, continued: check the hand-written formula against the
+# preregistration. Returns a ticket that the fit step consumes; it does not
+# fit anything itself.
 build_model <- function(formula, estimator) {
   ch <- .check_choices()
   if (missing(formula) || !inherits(formula, "formula"))
@@ -323,7 +326,7 @@ build_model <- function(formula, estimator) {
          call. = FALSE)
   lhs <- all.vars(formula[[2]])
   if (!identical(lhs, ch$my_outcome))
-    stop(sprintf("Your formula's outcome is '%s' but you preregistered '%s'. The preregistration is binding – fix the formula, not the prereg.",
+    stop(sprintf("The outcome in your formula is '%s' but you preregistered '%s'. The preregistration is binding – fix the formula, not the prereg.",
                  deparse(formula[[2]]), ch$my_outcome), call. = FALSE)
   want <- c(.main_term(ch), if (ch$my_copredictor != "none") ch$my_copredictor)
   got  <- attr(terms(formula), "term.labels")
@@ -344,11 +347,11 @@ build_model <- function(formula, estimator) {
             class = "spec_ticket")
 }
 
-# Task 6b: fit the real model the ticket describes and print its claim-aligned
-# result. This is where the estimation actually happens.
+# Task 5, continued: fit the real model that the ticket describes and print its
+# claim-aligned result. This is where the estimation actually happens.
 run_spec <- function(spec) {
   if (missing(spec) || !inherits(spec, "spec_ticket"))
-    stop("Pass the object build_model() returned, e.g. run_spec(my_model).",
+    stop("Pass the object that build_model() returned, e.g. run_spec(my_model).",
          call. = FALSE)
   now <- .check_choices()
   if (!identical(spec$choices, now))
@@ -413,9 +416,10 @@ run_spec <- function(spec) {
                  df = fit$df, n = fit$n, r = r, url = url))
 }
 
-# Task 5: submit the preregistered specification to the live class chart. Takes
-# no arguments – it reads the preregistration, refits, and always submits on
-# the claim-aligned scale the chart is drawn on, whatever claim_align displays.
+# Task 5, continued: submit the preregistered specification to the live class
+# chart. Takes no arguments – it reads the preregistration, refits, and always
+# submits on the claim-aligned scale that the chart is drawn on, whatever
+# claim_align displays.
 report_result <- function() {
   ch  <- .check_choices()
   fit <- .fit_spec(ch)

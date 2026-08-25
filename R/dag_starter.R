@@ -1,18 +1,18 @@
 # ########################################################################### #
 # Title:        dag_starter.R – the half-built DAG for the claim under test
-# Purpose:      The object you complete in Task 4. It encodes the identification
+# Purpose:      The object you complete in Task 2. It encodes the identification
 #               assumptions behind the claim "national unemployment lowers
 #               cosmopolitan EU framing": the causal path of interest and the
 #               two assumed confounder pairs are drawn, and the more arguable
 #               arrows sit in the same call, commented out. Uncomment the ones
 #               you believe, re-source, and read the adjustment set off the
 #               graph with dagitty::adjustmentSets().
-# Sourced by:   index.qmd (Task 4)
+# Sourced by:   index.qmd (Task 2)
 # Author:       Chris Moreh
-# Last updated: 2026-07-30
+# Last updated: 2026-08-25
 # ########################################################################### #
 
-# A one-line vocabulary, because the whole exercise turns on these three:
+# A one-line vocabulary, because the whole exercise depends on these three:
 #   confounder – a common cause of BOTH exposure and outcome; ADJUST for it,
 #                because leaving it out biases the estimate.
 #   mediator   – sits ON the path from exposure to outcome; do NOT adjust when
@@ -46,7 +46,7 @@ coords <- list(
 # direction you read a regression in, and the reverse of how an arrow is drawn.
 # So `framing ~ unemployment` is the arrow unemployment -> framing. One arrow
 # per line means a leading # switches an arrow off and takes its comma with it,
-# which is the whole mechanic of Task 4.
+# which is the whole mechanic of Task 2.
 #
 # A node exists only if some arrow mentions it, so the candidates below stay off
 # the plot until you commit to one. That is the point rather than a limitation:
@@ -67,7 +67,7 @@ dag <- dagify(
   unemployment ~ year,
   framing ~ year,
 
-  # ----- Arrows you may or may not believe (TASK 4) -----
+  # ----- Arrows you may or may not believe (TASK 2) -----
   # Each one is a substantive claim about the world, not a modelling detail. Take
   # the # off the arrows you hold, re-source this file, and watch the adjustment
   # set move.

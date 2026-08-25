@@ -1,15 +1,15 @@
 # ########################################################################### #
 # Title:        Working script – the EU-frames robustness exercise, plain R
-# Purpose:      The same five tasks as index.qmd, as a script you can step
-#               through in the console: check the setup, meet the panel and
-#               its causal graph, reproduce the recorded result (t = -3.804),
-#               explore the specification menu, then declare one specification
-#               and fit and report it. Every fit is live, on `euframes`.
+# Purpose:      Tasks 2 to 5 of index.qmd, as a script you can step through in
+#               the console: look at the panel, reproduce the recorded result
+#               (t = -3.804), explore the specification menu, then declare one
+#               specification and fit and report it. Every fit is live, on
+#               `euframes`.
 # Reads:        data/EUframes_cy.csv   (the EU-frames country-year panel)
 # Writes:       – (prints results to the console; the submit helpers print a
 #               pre-filled form link)
 # Author:       Chris Moreh
-# Last updated: 2026-07-31
+# Last updated: 2026-08-25
 # ########################################################################### #
 
 # The code you work through is analyst C6HJR's own submitted analysis, adapted
@@ -28,7 +28,7 @@ source("R/spec_tools.R")
 
 ## ---- Task 2: look at the panel --------------------------------------------
 
-# One row per country-year: 27 EU member states x 10 years, 2004-2013.
+# One row per country-year: 27 EU member states x 10 years, 2004–2013.
 euframes |>
   summarise(
     n_rows      = n(),
@@ -40,8 +40,9 @@ euframes |>
 
 ## ---- Task 3: reproduce the recorded result --------------------------------
 
-# Grand-mean centred unemployment, as the constrained specification names. With
-# two-way fixed effects this shifts the intercept, not the slope or the t.
+# Grand-mean centred unemployment, which is the transformation that the
+# constrained specification names. With two-way fixed effects this shifts the
+# intercept, not the slope or the t.
 euframes <- euframes |>
   mutate(unemp_c = unemp - mean(unemp))
 
@@ -73,8 +74,9 @@ submit_exploration()
 
 # One choice on each axis of the menu – every axis live, including the outcome
 # family and the predictor. claim_align = TRUE is the day's convention, applied
-# automatically: negative framings are reverse-coded (1 - y) and growth's
-# claim-expected sign is flipped, so 'supports the claim' is a negative sign.
+# automatically: negative framings are reverse-coded (1 - y) and the
+# claim-expected sign for growth is flipped, so 'supports the claim' is a
+# negative sign.
 
 my_outcome     <- "mcosmo"     # mcosmo | mutil | mpos (positive) | mcomm | mlib | mneg (negative)
 my_family      <- "gaussian"   # gaussian | beta (logit-link on the cell means; beta reports z)
@@ -99,6 +101,6 @@ run_spec(my_model)
 
 
 # Argument-free and prereg-driven: it refits, builds the spec label, and always
-# submits on the claim-aligned scale the chart is drawn on. Open the printed
-# link and press Send.
+# submits on the claim-aligned scale that the chart is drawn on. Open the
+# printed link and press Send.
 report_result()
