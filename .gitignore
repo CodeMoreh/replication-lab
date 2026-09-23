@@ -10,6 +10,12 @@
 # one is ever needed in this workspace, it stays untracked.
 CLAUDE.md
 
+# Respondent-level files built from the GESIS Eurobarometer downloads by
+# prep/01_build_respondents.R. They are derived microdata under the GESIS
+# terms of use and must never be committed, pushed or shared. The folder is
+# ignored as a backstop; the raw .dta files should live outside the workspace.
+/data_private/
+
 # Deliberately NOT ignored:
 #   /_freeze/  – committed so GitHub Actions can publish without re-running R.
 #   /data/     – the CSVs are committed so the report renders offline.

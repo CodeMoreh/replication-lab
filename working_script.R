@@ -5,7 +5,10 @@
 #               (t = -3.804), explore the specification menu, then declare one
 #               specification and fit and report it. Every fit is live, on
 #               `euframes`.
-# Reads:        data/EUframes_cy.csv   (the EU-frames country-year panel)
+# Reads:        data/EUframes_cy.csv   (the EU-frames country-year panel);
+#               through R/spec_tools.R, data/teney_panel_measurement.csv,
+#               data/teney_panel_weights.csv, data/predictor_measures.csv and
+#               data/spec_grid_mi.csv (the measurement variants behind the menu)
 # Writes:       – (prints results to the console; the submit helpers print a
 #               pre-filled form link)
 # Author:       Chris Moreh
@@ -55,13 +58,17 @@ tidy(m1)
 ## ---- Task 4: explore the menu ---------------------------------------------
 
 # Nothing here commits you to anything. try_spec() takes one argument per axis
-# and every one already carries the baseline you just reproduced, so changing
-# one thing means changing one argument.
+# of the fourteen-axis menu and every one already carries the baseline you just
+# reproduced, so changing one thing means changing one argument. Level 1
+# arguments change the question; Level 2 arguments select which version of
+# the panel is fitted; Level 3 arguments fix the arithmetic.
 try_spec()                          # the baseline itself
-try_spec(outcome   = "mpos")        # all positive framings, not cosmopolitan alone
-try_spec(estimator = "pooled_cl")   # no between-country comparison absorbed
-try_spec(sample    = "no_bailout")  # drop the assistance-programme countries
-try_spec(weights   = "n_cy")        # weight cells by respondents behind them
+try_spec(outcome   = "mpos")         # all positive framings, not cosmopolitan alone
+try_spec(estimator = "pooled_cl")    # no between-country comparison absorbed
+try_spec(sample    = "no_bailout")   # drop the assistance-programme countries
+try_spec(weights   = "pop")          # let each country count by its adult population
+try_spec(noop      = "drop")         # leave out the respondents who mentioned no frame
+try_spec(measure   = "es_2064_pop")  # a Eurostat unemployment series instead of the World Bank one
 
 # The running log of everything you have tried – the small multiverse you
 # just built. Only the axes that actually varied are printed.
@@ -72,21 +79,40 @@ submit_exploration()
 
 ## ---- Task 5: preregister one specification --------------------------------
 
-# One choice on each axis of the menu – every axis live, including the outcome
-# family and the predictor. claim_align = TRUE is the day's convention, applied
-# automatically: negative framings are reverse-coded (1 - y) and the
+# One choice on each of the fourteen axes. The six Level 1 choices fix the
+# question, the five Level 2 choices fix how it is measured, the three Level 3
+# choices fix the arithmetic. claim_align = TRUE is the course convention,
+# applied automatically: negative framings are reverse-coded (1 - y) and the
 # claim-expected sign for growth is flipped, so 'supports the claim' is a
 # negative sign.
 
-my_outcome     <- "mcosmo"     # mcosmo | mutil | mpos (positive) | mcomm | mlib | mneg (negative)
-my_family      <- "gaussian"   # gaussian | beta (logit-link on the cell means; beta reports z)
-my_predictor   <- "unemp"      # unemp | growth (the claim-carrying measure)
-my_pred_form   <- "raw"        # raw | log (growth: raw only)
-my_copredictor <- "none"       # none | growth (beside unemp) | unemp (beside growth)
-my_estimator   <- "fe_twoway"  # fe_twoway | fe_country | re | pooled_cl
-my_sample      <- "all"        # all | y2004_2008 | y2009_2013 | no_bailout | no_GR_ES
-my_weights     <- "none"       # none | n_cy (re is never weighted)
-claim_align    <- TRUE         # the day's convention, applied automatically
+# Level 1 – Estimands (each of these changes what is being estimated)
+my_outcome      <- "mcosmo"       # mcosmo | mutil | mpos    (positive framings)
+                                  # mcomm  | mlib  | mneg    (negative framings)
+my_predictor    <- "unemp"        # unemp | growth    (the claim-carrying measure)
+my_copredictor  <- "none"         # none | other      (the other macro measure, adjusted for)
+my_estimator    <- "fe_twoway"    # fe_twoway | fe_country | re | pooled_cl
+my_sample       <- "all"          # all | y2004_2008 | y2009_2013 | no_bailout | no_GR_ES
+my_weights      <- "none"         # none | n_cell | n_eff | pop   (re is never weighted)
+my_construction <- "share"        # share | count | rate   (share of own mentions, count of the
+                                  #   set's items, or count per item in the set)
+
+# Level 2 – Measurement (the same question, put to the data differently)
+my_noop         <- "zero"         # zero | drop | split | mi_mice | mi_amelia
+                                  #   (respondents who mentioned no frame at all)
+my_item_set     <- "all"          # all | un   (with or without the "unemployment" item)
+my_cell_weight  <- "unweighted"   # unweighted | design   (cells as interviewed, or design-weighted)
+my_measure      <- "wb_nat"       # unemp:  wb_nat | es_1574_act | es_2064_pop | es_2564_lfs | es_1574_tips
+                                  # growth: wb_growth | es_growth
+
+# Level 3 – Estimation (the same question and measures, another fit)
+my_pred_form    <- "raw"          # raw | log   (growth: raw only; centring or z-scaling
+                                  #              would leave t, r and p unchanged)
+my_family       <- "gaussian"     # gaussian | beta   (logit link on the cell means; beta
+                                  #                    reports z; canonical measurement only)
+my_se           <- "conventional" # conventional | clustered   (clustered by country)
+
+claim_align     <- TRUE           # the course convention, applied automatically
 
 prereg()   # checks every choice against the menu and records the declaration
 
@@ -95,7 +121,8 @@ prereg()   # checks every choice against the menu and records the declaration
 # Translate the declaration into model syntax yourself: the outcome, the
 # right-hand side, the estimator code. build_model() refuses anything that does
 # not match the preregistration; run_spec() then expands the estimator, family,
-# sample and weights into the real fixest / plm / betareg / glmmTMB call.
+# sample and weights into the real fixest / plm / betareg / glmmTMB call, fitted
+# on the version of the panel that the measurement choices select.
 my_model <- build_model(mcosmo ~ unemp, estimator = "fe_twoway")
 run_spec(my_model)
 

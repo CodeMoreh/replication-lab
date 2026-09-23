@@ -16,7 +16,7 @@ This workspace is a plain folder – no accounts, no version control, nothing to
 
 2.  **Unzip it.** Extract the ZIP to a real folder (on Windows, "Extract All" – do not work inside the compressed preview). You will get a folder called `replication-lab-main` containing `index.qmd`, `data/`, `R/`, and this file.
 
-3.  **Open the folder in Positron.** **File → Open Folder…** and pick the unzipped folder. (Any IDE set up for R works, but Positron is the one that the walkthrough uses.)
+3.  **Open the folder in your IDE.** In Positron or VS Code, **File → Open Folder…** and pick the unzipped folder; in RStudio, open `replication-lab.Rproj`, which sits inside it. (Positron is the one that the walkthrough uses on the shared screen; any of the three works for every step.)
 
 4.  **Restore the packages.** This workspace does not pin versions with a lockfile – instead, `R/check_setup.R` tells you exactly what you need. In the R console:
 
@@ -26,13 +26,24 @@ This workspace is a plain folder – no accounts, no version control, nothing to
 
     It prints an `[OK]` / `[FAIL]` line per check (R version, Quarto, the required packages, the data files). If any packages are missing, it prints the one line that installs them. Run that line, then re-run the check.
 
-5.  **Open the report and preview it.** Open `index.qmd`, then in the Positron terminal:
+5.  **Open the report and preview it.** Open `index.qmd`, then in a terminal inside your IDE:
 
     ``` sh
     quarto preview
     ```
 
     The skeleton report opens in a browser. That is your starting point – now work through the tasks inside `index.qmd`.
+
+------------------------------------------------------------------------
+
+## The Eurobarometer files, for the individual-level work
+
+Everything above runs on the country-year panel in `data/`. The respondent-level data behind it are sixteen Eurobarometer surveys that GESIS distributes under terms that do not allow this workspace to carry them, so they are downloaded under your own free GESIS account, into a folder outside the workspace. The course site lists the sixteen studies and walks through the download at https://codemoreh.github.io/applied-replication/companion/data-sources.html#sec-gesis. Two scripts then do the rest:
+
+- `prep/01_build_respondents.R` – set the folder path at the top, source it once. It checks every file against the version and checksum the course was built from, reads the sixteen, harmonises the respondent characteristics, and writes `data_private/eb_respondents.rds`. That folder is ignored by git and must stay so: the file is licensed microdata, never to be shared or opened in a session an AI assistant can read.
+- `prep/02_scales_and_panel.R` – read and run section by section. It builds the framing scales under the three scoring rules, averages respondents into country-years, merges the macro series, reproduces `data/EUframes_cy.csv` to machine precision, and builds the panel by education band.
+
+The two scripts under `prep/` that begin "EXHIBIT ONLY" are the historical builds, kept for reading.
 
 ------------------------------------------------------------------------
 
@@ -75,7 +86,7 @@ This workspace is published as the "Use this template" repository `CodeMoreh/rep
 - `.devcontainer/devcontainer.json` – a Codespaces / dev-container image (R + Quarto + the package list) so the repo can be opened and rendered in the cloud with no local install.
 - `.github/workflows/publish.yml` – renders the report and publishes it to GitHub Pages on every push, once **Settings → Pages → Source** is set to **"GitHub Actions"**. It installs R and re-runs the chunks, so a participant's edits show up.
 
-Neither is needed for the in-room zip route. Keep `data/` and `data/EUframes_cy_codebook.md` in sync with the `data/` folder in the workshop repository.
+Neither is needed for the in-room zip route. Keep `data/` in sync with the `data/` folder of the course repository: `EUframes_cy.csv` and its codebook are what the report reads directly; `teney_panel_measurement.csv`, `teney_panel_weights.csv` and `predictor_measures.csv` are the measurement variants that `R/spec_tools.R` fits from when a Level 2 choice departs from the baseline; `spec_grid_mi.csv` holds the pooled multiple-imputation results, which cannot be fitted here because they need the respondent-level file.
 
 ------------------------------------------------------------------------
 

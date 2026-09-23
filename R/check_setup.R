@@ -1,16 +1,16 @@
 # ########################################################################### #
-# Title:        check_setup.R – does this machine have what the workshop needs?
+# Title:        check_setup.R – does this machine have what the course needs?
 # Purpose:      Report R version, Quarto, the required packages, and whether the
 #               workspace data files are present and readable. Prints an
 #               [OK] / [FAIL] / [SKIP] line per check and a verdict. It only
 #               looks – nothing here changes your system.
 # Sourced by:   the participant, before the session (source("R/check_setup.R"))
 # Author:       Chris Moreh
-# Last updated: 2026-07-16
+# Last updated: 2026-09-08
 # ########################################################################### #
 
-# A FAIL is not the end of the world: the workshop has a browser route that
-# needs nothing but a web browser. The message at the bottom says what to do.
+# A FAIL is not the end of the world: the course's browser lab runs the same
+# exercise inside a web browser. The message at the bottom says what to do.
 
 # --- tiny reporting helpers -------------------------------------------------
 .results <- new.env()
@@ -50,9 +50,11 @@ if (nzchar(qv) && !grepl("not found|error", qv, ignore.case = TRUE)) {
 # The gaussian menu paths need fixest and plm; the beta family adds betareg
 # (fixed-effects and pooled designs), glmmTMB (random effects) and sandwich
 # (the cluster-robust pooled beta). All are checked so any menu choice runs.
+# rmarkdown is what Quarto drives to run the report's R chunks, so a fresh R
+# without it renders nothing.
 needed <- c("dplyr", "readr", "ggplot2", "broom", "fixest", "plm",
             "dagitty", "ggdag", "modelsummary", "osfr", "betareg",
-            "glmmTMB", "sandwich")
+            "glmmTMB", "sandwich", "rmarkdown")
 missing <- needed[!vapply(needed, requireNamespace, logical(1), quietly = TRUE)]
 if (length(missing) == 0) {
   ok(paste0("all ", length(needed), " required packages installed"))
@@ -107,8 +109,9 @@ if (.results$fail == 0) {
 } else {
   cat("\nSome checks failed. Two options:\n",
       " 1. Fix the FAILs above (each line says how), then re-run this script.\n",
-      " 2. Come anyway – the workshop has a browser route that needs nothing\n",
-      "    but a web browser, and a partner's laptop can drive the rest.\n",
+      "    The course site's setup help page lists the common failures and fixes.\n",
+      " 2. Come anyway – the browser lab runs the same exercise inside a web\n",
+      "    browser, and a partner's laptop can drive the rest.\n",
       sep = "")
 }
 cat("\n")
