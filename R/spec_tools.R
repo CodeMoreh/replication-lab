@@ -123,7 +123,7 @@ names(.level) <- names(.menu)
                  ch$my_measure, setdiff(names(.measures_for), ch$my_predictor), ch$my_predictor,
                  paste(.measures_for[[ch$my_predictor]], collapse = " | ")), call. = FALSE)
   if (ch$my_family == "beta" && !.canonical_measurement(ch))
-    stop("The beta family is fitted at the canonical measurement settings only: construction = \"share\" or \"rate\" (a count is not a proportion), noop = \"zero\", item_set = \"all\", cell_weight = \"unweighted\", measure = the World Bank series.",
+    stop("The beta family is fitted only with the measurement held fixed: construction = \"share\" or \"rate\" (a count is not a proportion), noop = \"zero\", item_set = \"all\", cell_weight = \"unweighted\", measure = the World Bank series.",
          call. = FALSE)
   if (ch$my_family == "beta" && ch$my_estimator == "re" && ch$my_se == "clustered")
     stop("Clustered errors are not available for the beta random-effects fit. Use se = \"conventional\" with that pairing.",
@@ -132,7 +132,7 @@ names(.level) <- names(.menu)
       !(ch$my_construction == "share" && ch$my_item_set == "all" &&
         ch$my_cell_weight == "unweighted" && ch$my_measure == "wb_nat" &&
         ch$my_predictor == "unemp" && ch$my_pred_form == "raw" && ch$my_family == "gaussian"))
-    stop("The imputed no-opinion options were pre-computed for the unemployment arm at the canonical measurement and estimation settings only (share, all items, unweighted cells, World Bank series, raw form, gaussian).",
+    stop("The imputed no-opinion options were pre-computed only for the unemployment arm, with the measurement and estimation held fixed (share, all items, unweighted cells, World Bank series, raw form, gaussian).",
          call. = FALSE)
   ch
 }

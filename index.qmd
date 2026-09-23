@@ -294,7 +294,7 @@ my_measure      <- "wb_nat"       # unemp:  wb_nat | es_1574_act | es_2064_pop |
 my_pred_form    <- "raw"          # raw | log   (growth: raw only; centring or z-scaling
                                   #              would leave t, r and p unchanged)
 my_family       <- "gaussian"     # gaussian | beta   (logit link on the cell means; beta
-                                  #                    reports z; canonical measurement only)
+                                  #                    reports z; standard measurement only)
 my_se           <- "conventional" # conventional | clustered   (clustered by country)
 
 claim_align     <- TRUE           # the course convention, applied automatically
