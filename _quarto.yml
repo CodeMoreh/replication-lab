@@ -5,7 +5,8 @@ project:
 website:
   title: "Replication lab – the EU-frames case"
 
-# freeze: auto means a chunk is only re-run when its code changes. The committed
+# freeze: auto means a whole-project render re-runs a document (every chunk in it)
+# only when its source file has changed. The committed
 # _freeze/ folder lets GitHub Actions publish without re-executing everything –
 # but a fresh edit to any chunk DOES re-run on the next render, so your work
 # always shows up.

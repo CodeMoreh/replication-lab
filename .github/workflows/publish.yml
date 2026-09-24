@@ -6,7 +6,7 @@
 #
 # Why this installs R (unlike a freeze-only workflow): you will edit the code
 # chunks, so CI must be able to RE-RUN them. We install R + the package list,
-# then let Quarto render. freeze: auto still skips chunks whose code is unchanged,
+# then let Quarto render. freeze: auto still skips documents whose source is unchanged,
 # so renders stay quick.
 
 on:

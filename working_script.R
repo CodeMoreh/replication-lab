@@ -83,8 +83,8 @@ submit_exploration()
 
 ## ---- Task 5: preregister one specification --------------------------------
 
-# One choice on each of the fourteen axes. The six Level 1 choices fix the
-# question, the five Level 2 choices fix how it is measured, and the three
+# One choice on each of the fourteen axes. The seven Level 1 choices fix the
+# question, the four Level 2 choices fix how it is measured, and the three
 # Level 3 choices fix how the model is estimated. claim_align = TRUE is the
 # course convention, applied automatically: negative framings are
 # reverse-coded (1 - y) and the claim-expected sign for growth is flipped, so

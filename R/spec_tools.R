@@ -14,10 +14,11 @@
 #               against it, run_spec() fits the real model, report_result()
 #               submits it.
 #
-#               Every fit is a live estimation. The six Level 1 decisions fix
-#               the question. The Level 2 decisions select which version of the
-#               country-year panel is fitted (how the outcome was built from the
-#               items, what was done with respondents who mentioned nothing,
+#               Every fit is a live estimation. The seven Level 1 decisions fix
+#               the question, and one of them, the scoring rule, also sets how
+#               the outcome is built from the items. The Level 2 decisions
+#               select which version of the country-year panel is fitted (what
+#               was done with respondents who mentioned nothing,
 #               whether the "unemployment" item is in, whether cells are
 #               design-weighted, and which published series supplies the
 #               predictor), and the Level 3 decisions fix how the model is
