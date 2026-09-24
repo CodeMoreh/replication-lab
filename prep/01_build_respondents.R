@@ -1,17 +1,18 @@
 # ########################################################################### #
 # Title:        01_build_respondents.R – the Eurobarometer respondent file
 # Purpose:      Turn the sixteen GESIS Eurobarometer files you downloaded into
-#               one respondent-level data frame carrying everything the course
-#               can ask of the microdata: the fourteen EU-meaning items with the
-#               "other" and "don't know" codes beside them, the design weight,
-#               and the respondent characteristics that the published models
-#               use (age, sex, education, occupation, urbanisation, left–right
-#               placement). Nothing is scored here. The framing scales are
-#               built in prep/02_scales_and_panel.R, which is where the course
-#               teaches them. Every file is checked against the version and the
-#               checksum that the course panel was built from, so a mismatch is
-#               reported rather than silently absorbed, and the row counts per
-#               country-year are checked against the committed panel.
+#               one respondent-level data frame that contains every variable
+#               that the course uses from the microdata: the fourteen EU-meaning
+#               items with the "other" and "don't know" codes beside them, the
+#               design weight, and the respondent characteristics that the
+#               published models use (age, sex, education, occupation,
+#               urbanisation, left–right placement). Nothing is scored here.
+#               The framing scales are built in prep/02_scales_and_panel.R,
+#               which is where the course teaches them. Every file is checked
+#               against the version and the checksum of the file from which
+#               the course panel was built, and any mismatch is listed in the
+#               build report. The row counts per country-year are also
+#               checked against the committed panel.
 # Reads:        the sixteen .dta files in the folder named by EB_RAW_DIR
 #               data/EUframes_cy.csv and data/teney_panel_weights.csv (checks)
 # Writes:       data_private/eb_respondents.rds – GESIS-derived microdata:
@@ -32,13 +33,14 @@ suppressPackageStartupMessages({
   library(haven); library(dplyr); library(purrr); library(readr); library(tibble)
 })
 
-# --- the sixteen studies, as the course holds them ----------------------------
-# One row per wave: the file name GESIS serves, the study number, the fieldwork
-# year the course assigns the wave to, the column holding the country, where
-# the EU-meaning block starts (v-numbered files) or the question stem it hangs
-# off (qa-named files), the design-weight column, and the MD5 checksum of the
-# file the course panel was built from. ZA4506 and ZA4744 arrive from GESIS as
-# .dta.zip; the script unzips them beside the archive.
+# --- the sixteen studies used by the course ----------------------------------
+# One row per wave: the name under which GESIS serves the file, the study
+# number, the fieldwork year to which the course assigns the wave, the column
+# holding the country, where the EU-meaning block starts (v-numbered files) or
+# the question stem that names its columns (qa-named files), the design-weight
+# column, and the MD5 checksum of the file from which the course panel was
+# built. GESIS serves ZA4506 and ZA4744 as .dta.zip archives, which the script
+# unzips into the same folder.
 inventory <- tribble(
   ~file,               ~study,   ~eb,    ~year, ~cntry_v,   ~items_from, ~items_style, ~w1_v, ~md5,
   "ZA4056_v1-0-1.dta", "ZA4056", "61.0", 2004, "isocntry",  63,  "v",    "v9", "0fc7763a1b0ae4bac6fb70bf87d07543",
@@ -60,8 +62,9 @@ inventory <- tribble(
 )
 
 # The fourteen items of "What does the European Union mean to you personally?",
-# in the order the questionnaire lists them, followed by the two closing codes.
-# The euro item (8) is carried but never scored, following the published paper.
+# in the order in which the questionnaire lists them, followed by the two
+# closing codes. The euro item (8) is kept in the file but never scored, as in
+# the published paper.
 item_labels <- c(
   it1  = "Peace",
   it2  = "Economic prosperity",
@@ -85,11 +88,11 @@ eu27 <- c("AT", "BE", "BG", "CY", "CZ", "DE", "DK", "EE", "ES", "FI", "FR", "GB"
           "GR", "HU", "IE", "IT", "LT", "LU", "LV", "MT", "NL", "PL", "PT", "RO",
           "SE", "SI", "SK")
 
-# --- 1. are the files there, and are they the files the course used? ----------
-# A file that is missing stops the script with the study number to fetch. A
-# file whose checksum differs is read anyway, because GESIS re-releases files
-# under the same name with corrections; the report says which, and the cell
-# count check at the end says whether it matters.
+# --- 1. the files and their checksums -----------------------------------------
+# A missing file stops the script, and the error names the study to download.
+# A file whose checksum differs is read anyway, because GESIS re-releases files
+# under the same name with corrections. The report lists which files differ,
+# and the cell-count check at the end tests whether the difference matters.
 if (!dir.exists(raw_dir))
   stop("The folder '", raw_dir, "' does not exist. Set raw_dir at the top of ",
        "this script, or the EB_RAW_DIR environment variable, to the folder ",
@@ -120,8 +123,8 @@ checksums <- tools::md5sum(paths) |> unname()
 # --- 2. read each wave ---------------------------------------------------------
 # The EU-meaning block is sixteen adjacent columns in every file: fourteen
 # items, then "other", then "don't know". The respondent characteristics are
-# found by their variable labels rather than by position, because the position
-# of the occupation item in particular moves from wave to wave.
+# found by their variable labels, because their positions, and that of the
+# occupation item in particular, move from wave to wave.
 covariate_labels <- c(
   age    = "AGE EXACT$",
   gender = "GENDER$|D10 SEX$",
@@ -135,9 +138,9 @@ label_of <- function(d) {
   map_chr(d, \(x) { l <- attr(x, "label"); if (is.null(l)) "" else as.character(l) })
 }
 
-# One column name per characteristic, or NA when a wave does not carry it. Two
-# matches is an error rather than a guess: it means the pattern has stopped
-# being specific to one variable.
+# One column name per characteristic, or NA when a wave does not include it.
+# Two matches stop the script with an error, because they mean that the
+# pattern no longer identifies a single variable.
 resolve <- function(nm, lab, pattern, file, what) {
   i <- grep(pattern, lab, ignore.case = TRUE)
   if (length(i) == 0) return(NA_character_)
@@ -182,14 +185,14 @@ waves <- map2(seq_len(nrow(inventory)), paths,
               \(i, p) read_wave(inventory[i, ], p))
 respondents <- bind_rows(waves)
 
-# --- 3. the respondent characteristics, coded as the published models code them
+# --- 3. the respondent characteristics, in the coding of the published models
 # Education is the age at which full-time schooling finished. GESIS codes
-# "still studying" as 98 and "no full-time education" as 97; the published
+# "still studying" as 98 and "no full-time education" as 97. The published
 # preparation replaces 98 with the respondent's current age and sets 97 to
 # missing, then cuts three bands at 16 and 20. The four-band version keeps the
 # students as a band of their own and folds "none" into the lowest band, which
-# is the coding the GESIS recode offers; both are kept so the choice between
-# them is yours to make on the menu.
+# is the coding offered by the GESIS recode. Both are kept, so the choice
+# between them is yours to make on the menu.
 #
 # Socio-economic position collapses the eighteen-category occupation item into
 # the eight groups of the published models, with the unemployed as their own
@@ -227,11 +230,12 @@ respondents <- respondents |>
   select(-gender, -occ)
 
 # --- 4. the checks ---------------------------------------------------------------
-# Three things are compared with the files the course ships. The checksum says
-# whether each file is byte for byte the one the panel was built from. The cell
-# count says whether the same respondents are in the same country-years. The
-# no-opinion count says whether the closing codes were read from the right
-# columns. All three should agree exactly; the report says where they do not.
+# Three things are compared with the files that ship with the course. The
+# checksum tests whether each file is, byte for byte, the one from which the
+# panel was built. The cell count tests whether the same respondents are in the
+# same country-years, and the no-opinion count whether the closing codes were
+# read from the right columns. All three should agree exactly, and the report
+# lists where they do not.
 panel   <- read_csv("data/EUframes_cy.csv", show_col_types = FALSE)
 weights <- read_csv("data/teney_panel_weights.csv", show_col_types = FALSE)
 
@@ -289,10 +293,10 @@ cat("\nrespondents:", nrow(respondents), "rows,", ncol(respondents),
     "columns, written to data_private/eb_respondents.rds\n")
 if (all(file_report$identical_to_course_file) &&
     report$value[5] == nrow(panel) && report$value[6] == nrow(panel)) {
-  cat("Every check passed: your file is the one the course was built from.\n")
+  cat("Every check passed: your file is the one from which the course panel was built.\n")
 } else {
   cat("At least one check differs. A checksum difference means GESIS has ",
-      "re-released that file; a cell difference means the respondents read ",
-      "are not the course's. Compare data_private/build_report.csv with the ",
+      "re-released that file. A cell difference means that the respondents read here ",
+      "are not the ones in the course panel. Compare data_private/build_report.csv with the ",
       "inventory above, and bring the report to the session.\n", sep = "")
 }

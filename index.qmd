@@ -52,12 +52,12 @@ The original author (OA) studied how citizens frame the European Union. One clai
 
 Operationalised the way that the Multi100 project constrained it for its five analysts: does a country's **unemployment rate** (poor economic performance) lower the **cosmopolitan** dimension of EU framing (peace, democracy, free movement, cultural diversity, a stronger say in the world)? The published result was a coefficient of −0.0034, t = −4.03.
 
-You hold the data, the tools, and the workflow that the project used – and the code you work through is the coordinator's own submitted analysis. You are analyst no. 6, and the question is: how robust is that number to *justifiable* alternative choices? Work through the five tasks below in order, from a setup check to two dots on the live class chart – one explored, one declared.
+You have the data, the tools and the workflow that the project used, and the code you work through is the coordinator's own submitted analysis. You are analyst no. 6, and the question is how robust that number is to *justifiable* alternative choices. Work through the five tasks below in order, from a setup check to two dots on the live class chart – one explored, one declared.
 
 ::: callout-tip
 ## How the tasks work
 
-Every task is a callout box with instructions, a **TODO** you complete, and code chunks that **already run** – so the report renders from the first preview. You edit the prose blanks and, in Tasks 4 and 5, the code. The browser version of this same exercise is on the course site if you would rather not install anything; this workspace is the full IDE pipeline.
+Every task is a callout box with instructions, a **TODO** you complete, and code chunks that **already run** – so the report renders from the first preview. You edit the prose blanks and, in Tasks 4 and 5, the code. The course site also has a browser version of this exercise, for practice without an installation or as a fallback if your machine fails; this workspace is the full IDE pipeline.
 :::
 
 ------------------------------------------------------------------------
@@ -95,11 +95,11 @@ euframes |>
   )
 ```
 
-You should see **27 countries**, **10 years** (2004–2013), and **270 rows**. The outcome we care about first is `mcosmo` – the mean cosmopolitan framing of the EU in each country-year (a 0–1 scale). The predictor is `unemp`, the annual unemployment rate; `growth` is annual GDP growth, and `n_cy` counts the survey respondents behind each row. Every column is described in `data/EUframes_cy_codebook.md`.
+You should see **27 countries**, **10 years** (2004–2013), and **270 rows**. The outcome we care about first is `mcosmo` – the mean cosmopolitan framing of the EU in each country-year (a 0–1 scale). The predictor is `unemp`, the annual unemployment rate. The column `growth` is annual GDP growth, and `n_cy` counts the survey respondents behind each row. Every column is described in `data/EUframes_cy_codebook.md`.
 
 ```{r}
 #| label: fig-cosmo-trend
-#| fig-cap: "Mean cosmopolitan EU framing over time, by country – an echo of OA's Figure 1."
+#| fig-cap: "Mean cosmopolitan EU framing over time, by country – a version of OA's Figure 1."
 #| fig-width: 9
 #| fig-height: 6
 ggplot(euframes, aes(x = year, y = mcosmo)) +
@@ -110,9 +110,9 @@ ggplot(euframes, aes(x = year, y = mcosmo)) +
   labs(x = NULL, y = "Mean cosmopolitan framing (0–1)")
 ```
 
-Most countries drift gently; a few move sharply around the 2009 crisis. That variation – within a country, over time – is exactly what the fixed-effects model in Task 3 uses.
+Most countries drift gently; a few move sharply around the 2009 crisis. That variation within each country over time is what the fixed-effects model in Task 3 uses.
 
-*Practising the OSF pull (optional).* `R/get_data.R` fetches this file from the analyst's OSF fork the way that a researcher would, with a course-site mirror as a fallback. It is not needed – the file already ships in `data/` – but running it proves you can pull a real published artefact:
+*Downloading from OSF (optional).* `R/get_data.R` fetches this file from the analyst's OSF fork the way that a researcher would, with a course-site mirror as a fallback. It is not needed – the file already ships in `data/` – but running it gives you practice in downloading a published file from its repository:
 
 ```{r}
 #| label: get-data
@@ -133,7 +133,7 @@ Before estimating, say *precisely* what you are estimating. An estimand has two 
 
 *(A defensible filling: the change in mean cosmopolitan framing within a country-year, for a one-percentage-point difference in that country's unemployment rate; across EU member states, 2004–2013.)*
 
-Now the identification assumptions. `R/dag_starter.R` builds the graph with `dagify()`, where every arrow is an ordinary R formula written the way you read a regression, effect on the left of the tilde and cause on the right. `framing ~ unemployment` is therefore the arrow unemployment → framing. The causal path and the two confounder pairs are switched on; the arguable arrows sit in the same call behind a `#`, each with a line of justification above it. Open the file, take the `#` off any arrow you believe, re-source, and re-run `adjustmentSets()`. A node joins the picture only once some arrow mentions it, so what you see is the graph you have committed to.
+Next come the identification assumptions: the claims about what causes what that must hold for the coefficient to be read as the effect of unemployment. `R/dag_starter.R` builds the graph with `dagify()`, where every arrow is an ordinary R formula written the way you read a regression, effect on the left of the tilde and cause on the right. `framing ~ unemployment` is therefore the arrow unemployment → framing. The causal path and the two confounder pairs are switched on; the arguable arrows are in the same call, commented out with a `#`, each with a line of justification above it. Open the file, take the `#` off any arrow you believe, re-source, and re-run `adjustmentSets()`. A node appears in the plot only once some arrow mentions it, so the plot shows only the graph that you have committed to.
 
 ```{r}
 #| label: dag
@@ -149,7 +149,7 @@ plot_dag(dag)
 dagitty::adjustmentSets(dag, exposure = "unemployment", outcome = "framing")
 ```
 
-The starter graph returns `{ country, year }` – exactly what the two-way fixed effects you fit in Task 3 absorb: country fixed effects adjust for `country`, year fixed effects adjust for `year`. The DAG and the model encode the same identification claim.
+For the starter graph the adjustment set is `{ country, year }`, which is what the two-way fixed effects that you fit in Task 3 absorb. Country fixed effects adjust for `country` and year fixed effects for `year`, so the DAG and the model encode the same identification claim.
 
 **TODO – answer two questions in a sentence each:**
 
@@ -162,11 +162,11 @@ Whatever set is returned by your DAG becomes field 4 of the preregistration you 
 ------------------------------------------------------------------------
 
 ::: {.callout-note title="Task 3 – Reproduce the recorded result"}
-This is the **reproducibility** check. Fit the two-way fixed-effects model that the Multi100 Task-2 constraints point to: cosmopolitan framing on grand-mean-centred unemployment, with country and year fixed effects. The target is **t = −3.804** (df = 233, N = 270) – the value on record for analyst C6HJR in the Multi100 dataset.
+This is the **reproducibility** check. Fit the two-way fixed-effects model that follows from the constraints of Task 2 in Multi100: cosmopolitan framing on grand-mean-centred unemployment, with country and year fixed effects. The target is **t = −3.804** (df = 233, N = 270) – the value on record for analyst C6HJR in the Multi100 dataset.
 
 ```{r}
 #| label: fit-corrected
-# Grand-mean centre unemployment, exactly as the submitted analysis did. With
+# Grand-mean centre unemployment, as the submitted analysis did. With
 # two-way fixed effects this shifts the intercept, not the slope or the t – it
 # is the transformation that the constrained specification names, so do it
 # explicitly.
@@ -190,23 +190,23 @@ modelsummary(
 )
 ```
 
-The coefficient is **−0.00347** with **t = −3.804** – exactly the value recorded for analyst C6HJR, reproduced from the published data and the published model. `feols` reports classical (IID) standard errors by default when two fixed-effect dimensions are present, which is why it matches the `plm` value that the analyst used to three decimals.
+The coefficient is **−0.00347** with **t = −3.804**, which is the value recorded for analyst C6HJR, reproduced from the published data and the published model. When two fixed-effect dimensions are present, `feols` reports classical (IID) standard errors by default, which assume that the errors are independent and identically distributed. That is why the *t* value matches, to three decimals, the value that the analyst obtained with `plm`.
 :::
 
-::: {.callout-note collapse="true" title="Everyone gets the same number, and the five analysts still disagreed"}
-You reproduced the recorded value exactly, and so did everyone else in the room, because everyone ran the same code on the same file – which is why reproducibility is the cheap R.
+::: {.callout-note collapse="true" title="Reproduction and the five analysts"}
+You reproduced the recorded value exactly, and so did everyone else in the class, because everyone ran the same code on the same file. That is why reproducibility is the cheapest of the three Rs to establish.
 
-The five Multi100 analysts each wrote their own code for the same claim, and came back with five different answers, one of them not significant. Their pipelines are competent, well-organised work, so the spread is not a quality problem. It is what happens when a claim stated in words leaves several genuinely defensible quantities on the table, and different analysts estimate different ones without noticing they have chosen.
+The five Multi100 analysts each wrote their own code for the same claim, and came back with five different answers, one of them not significant. Their pipelines are competent, well-organised work, so the spread does not come from poor analysis. It arises because a claim stated in words leaves several defensible quantities open, and different analysts estimate different ones without noticing that they have chosen between them.
 
-Task 2 named the quantity you are after and drew the graph that your adjustment set follows from. Task 4 now shows you how far the answer moves when the other choices move.
+In Task 2 you named the quantity you are after and drew the graph from which your adjustment set follows. In Task 4 you will see how far the answer moves when the other choices change.
 :::
 
 ------------------------------------------------------------------------
 
 ::: {.callout-note title="Task 4 – Work the menu"}
-This task is **exploration, and it is meant to be**. Try several specifications, see what each one does, and get a feel for which choices move the estimate and which barely touch it. Nothing here commits you to anything; that is Task 5.
+This task is **exploratory**. Try several specifications, see what each one does, and get a feel for which choices move the estimate and which barely touch it. Nothing here commits you to anything; the commitment comes in Task 5.
 
-`try_spec()` takes one argument per axis of the fourteen-axis specification menu, and every argument already carries the baseline you just reproduced – so changing one thing means changing one argument, and everything you do not name stays at baseline. Every call is a real fit: the Level 1 arguments change the question, the Level 2 arguments select which version of the country-year panel is fitted (how the outcome was built from the items, what was done with respondents who mentioned nothing, which published series carries the predictor), and the Level 3 arguments fix the arithmetic. The one exception is the two imputed no-opinion options, whose pooled results are read from a shipped file because they need the respondent-level data that cannot travel; the printout says so when it happens.
+`try_spec()` takes one argument per axis of the fourteen-axis specification menu. Every argument defaults to the baseline that you just reproduced, so changing one thing means changing one argument, and everything you do not name stays at the baseline. Every call is a real fit: the Level 1 arguments change the question, the Level 2 arguments select which version of the country-year panel is fitted (how the outcome was built from the items, what was done with respondents who mentioned nothing, which published series supplies the predictor), and the Level 3 arguments set how the model is estimated. The one exception is the two imputed no-opinion options, whose pooled results are read from a shipped file because they need the respondent-level data that cannot be distributed with the workspace. The printed output notes when this happens.
 
 **TODO:** run the six calls below, then write your own. Three or four of your own is plenty.
 :::
@@ -226,14 +226,14 @@ try_spec(noop      = "drop")         # leave out the respondents who mentioned n
 try_spec(measure   = "es_2064_pop")  # a Eurostat unemployment series instead of the World Bank one
 ```
 
-Everything you try is logged. Print the log to see the small multiverse you have just built – only the axes you actually varied are shown, so the contrast is readable:
+Everything you try is logged. Print the log to see the small multiverse you have just built. Only the axes that you varied are shown, which keeps the comparison readable:
 
 ```{r}
 #| label: my-experiments
 my_experiments()
 ```
 
-When you have tried three or four, decide which one you would defend if you had to, run it once more so it is the most recent, and submit it. It lands on the live class chart as an **exploratory** result:
+When you have tried three or four, decide which one you would defend if you had to, run it once more so it is the most recent, and submit it. It appears on the live class chart as an **exploratory** result:
 
 ```{r}
 #| label: submit-exploration
@@ -242,19 +242,19 @@ submit_exploration()
 ```
 
 ::: {.callout-note collapse="true" title="Why label it 'exploratory'?"}
-Because that is what it is, and the label costs nothing. You chose this specification after seeing what several of them do, so it cannot carry the guarantee that a declared choice carries – it might have been chosen *because* of its result, and neither you nor anyone else can now rule that out.
+You chose this specification after seeing what several of them do, so it lacks the guarantee that a declared choice has: it might have been chosen *because* of its result, and neither you nor anyone else can now rule that out.
 
-Almost no published paper tells you which of its analyses were explored and which were planned. Today's chart does, because the room submits twice: once here, and once in Task 5 after declaring, so the two sets of dots can be read against each other.
+Almost no published paper reports which of its analyses were explored and which were planned. The class chart does, because everyone submits twice: once here, and once in Task 5 after declaring, so the two sets of dots can be read against each other.
 :::
 
 ------------------------------------------------------------------------
 
 ::: {.callout-note title="Task 5 – My preregistration"}
-The point of preregistration is that you commit to a choice **before** you see what it does. It stops you quietly picking the specification that happens to give the answer you wanted. Here the commitment is real in a mechanical sense too: the choices you declare in the cell below are remembered by the session, and every later cell reads them from here – the model builder refuses code that deviates from them.
+Preregistration commits you to a choice **before** you see what it does, which stops you from quietly picking the specification that happens to give the answer you wanted. In this report the commitment is also enforced by the code. The session remembers the choices that you declare in the cell below, every later cell reads them from there, and the model builder refuses code that deviates from them.
 
-Make one choice on each of the fourteen axes of the specification menu, then run the cell. The six Level 1 choices fix the question you are asking; the five Level 2 choices fix how that question is measured; the three Level 3 choices fix the arithmetic. Every axis is live. `claim_align <- TRUE` is the day's convention, applied automatically: negative framings are reverse-coded (1 − y) and the claim-expected sign for growth is flipped, so 'supports the claim' reads as a negative sign for everyone.
+Make one choice on each of the fourteen axes of the specification menu, then run the cell. The six Level 1 choices fix the question you are asking, the five Level 2 choices fix how that question is measured, and the three Level 3 choices fix how it is estimated. Every axis is live. `claim_align <- TRUE` is the course convention, applied automatically: negative framings are reverse-coded (1 − y) and the claim-expected sign for growth is flipped, so 'supports the claim' reads as a negative sign for everyone.
 
-Task 2 of Multi100 fixed unemployment as the measure on a gaussian scale; this menu opens both. That is not a stretch beyond the project – Task 1 of Multi100 already shows three of the five analysts reaching for GDP-growth measures when the choice was theirs.
+Task 2 of Multi100 fixed unemployment as the measure on a gaussian scale; this menu lets you choose both. In Task 1 of Multi100, where the choice was left to them, three of the five analysts already used GDP-growth measures.
 :::
 
 ::: {.callout-important title="How this block maps to a real preregistration"}
@@ -274,13 +274,13 @@ Task 2 of Multi100 fixed unemployment as the measure on a gaussian scale; this m
 # Level 1 – Estimands (each of these changes what is being estimated)
 my_outcome      <- "mcosmo"       # mcosmo | mutil | mpos    (positive framings)
                                   # mcomm  | mlib  | mneg    (negative framings)
-my_predictor    <- "unemp"        # unemp | growth    (the claim-carrying measure)
+my_predictor    <- "unemp"        # unemp | growth    (the measure that the claim is about)
 my_copredictor  <- "none"         # none | other      (the other macro measure, adjusted for)
 my_estimator    <- "fe_twoway"    # fe_twoway | fe_country | re | pooled_cl
 my_sample       <- "all"          # all | y2004_2008 | y2009_2013 | no_bailout | no_GR_ES
 my_weights      <- "none"         # none | n_cell | n_eff | pop   (re is never weighted)
 my_construction <- "share"        # share | count | rate   (share of own mentions, count of the
-                                  #   set's items, or count per item in the set)
+                                  #   items in the set, or count per item in the set)
 
 # Level 2 – Measurement (the same question, put to the data differently)
 my_noop         <- "zero"         # zero | drop | split | mi_mice | mi_amelia
@@ -306,14 +306,14 @@ claim_align     <- TRUE           # the course convention, applied automatically
 prereg()   # checks every choice against the menu and records the declaration
 ```
 
-An optional mirror form may be used to log preregistrations for the room – the link is shared in the session. It is not required: the cell above, rendered into this report, is your official preregistration.
+An optional mirror form can be used to log preregistrations for the class, and the link to it is shared in the session. It is not required: the cell above, rendered into this report, is your official preregistration.
 
 ------------------------------------------------------------------------
 
 ::: {.callout-note title="Task 5, continued – build, run and report"}
-This is the **robustness** check, and it is the part that your classmates cannot copy from you: together the room samples the multiverse of defensible analyses. You have declared your specification; now translate it into model syntax yourself.
+This is the **robustness** check, and it is the part that your classmates cannot copy from you. Together, the class samples the multiverse of defensible analyses. You have declared your specification; now translate it into model syntax yourself.
 
-Fill the outcome, the right-hand side, and the estimator code exactly as you preregistered them. `build_model()` knows your declaration and will not accept anything else; its error messages tell you what is off. Write the log form as `log(unemp)`, and add any co-predictor with `+`. You do **not** write the fixed-effects, clustering, or family syntax here – the estimator and family codes stand for it, and `run_spec()` expands them into the real fit.
+Fill the outcome, the right-hand side, and the estimator code exactly as you preregistered them. `build_model()` checks your code against your declaration and will not accept anything else; its error messages say what does not match. Write the log form as `log(unemp)`, and add any co-predictor with `+`. You do **not** write the fixed-effects, clustering, or family syntax here – the estimator and family codes stand for it, and `run_spec()` expands them into the real fit.
 :::
 
 ```{r}
@@ -328,33 +328,33 @@ When the model is accepted, run it. `run_spec()` fits your preregistered specifi
 run_spec(my_model)
 ```
 
-Read the output like an analyst: the coefficient and its claim-aligned partial *r* (below zero supports the claim). The five Multi100 analysts run from about the 16th percentile of the specification curve (the most strongly claim-supporting) to about the 68th (near the null); your result is about to join theirs on the class chart.
+Read the output like an analyst, looking at the coefficient and at its claim-aligned partial *r*, the correlation between predictor and outcome once the rest of the model is taken into account. A partial *r* below zero supports the claim. The five Multi100 analysts run from about the 16th percentile of the specification curve (the most strongly claim-supporting) to about the 68th (near the null), and your result is about to join theirs on the class chart.
 
-Now send it to the room. There is nothing to fill in and nothing to transcribe – `report_result()` refits your declared specification, builds the spec label, and always submits on the claim-aligned scale that the chart is drawn on. It prints your submission line and a pre-filled form link; open it and press **Send**. Your dot joins the live [Multiverse](https://codemoreh.github.io/applied-replication/results.html) chart within seconds, this time labelled **declared** rather than exploratory.
+Now submit it to the class chart. There is nothing to fill in and nothing to transcribe – `report_result()` refits your declared specification, builds the spec label, and always submits on the claim-aligned scale that the chart is drawn on. It prints your submission line and a pre-filled form link; open it and press **Send**. Your dot appears on the live [Multiverse](https://codemoreh.github.io/applied-replication/results.html) chart within seconds, this time labelled **declared** rather than exploratory.
 
 ```{r}
 #| label: report
 report_result()
 ```
 
-If the form will not open on your machine, read the printed numbers to the facilitator and your dot still lands.
+If the form will not open on your machine, read the printed numbers to the facilitator and your dot will still be added.
 
 **A second declared specification?** Edit the preregistration cell, rerun `prereg()`, rebuild, rerun. The mechanics allow it, and the label does not change – so be clear with yourself about what the second one is. Your first declaration was made without knowing its result. Anything after it was not, which puts it back in the same category as Task 4, and you should say so when you report it.
 
 ------------------------------------------------------------------------
 
 ::: {.callout-note title="Taking it home"}
-You did the whole analysis in a plain folder, with no version control and nothing to sign in to. Putting your own work under version control and publishing the rendered report to a live URL is the natural next step – a git and GitHub self-study module walks it click by click on the course site: [Git and GitHub self-study](https://codemoreh.github.io/applied-replication/companion/git-github.html). The `.github/` and `.devcontainer/` folders already in this workspace are what make that path work once the folder is a repository again.
+You did the whole analysis in a plain folder, with no version control and nothing to sign in to. Putting your own work under version control and publishing the rendered report to a live URL is the natural next step. A self-study module on the course site goes through it click by click: [Git and GitHub self-study](https://codemoreh.github.io/applied-replication/companion/git-github.html). The `.github/` and `.devcontainer/` folders already in this workspace set up that route once the folder is a repository again.
 :::
 
 ::: {.callout-note title="Going further (optional)"}
-Time to spare? Each of these is a real fit you can run in this workspace.
+Each of these is a real fit that you can run in this workspace if you have time to spare.
 
 - **Sweep a whole axis.** `for (e in c("fe_twoway", "fe_country", "re", "pooled_cl")) try_spec(estimator = e)` fits all four estimators in one go, and `my_experiments()` then prints them side by side. The same trick works for any axis on the menu.
 
-- **The mirror-image expectation.** The claim is about *positive* framing. Preregister a **negative** dimension instead (`mneg`, or communitarian `mcomm`): if poor economic performance lowers positive framing, does it *raise* negative framing? With `claim_align <- TRUE` the reverse-coding (1 − y) is applied for you, so the result restates itself on the same scale as the rest of the curve.
+- **The mirror-image expectation.** The claim is about *positive* framing. Preregister a **negative** dimension instead (`mneg`, or communitarian `mcomm`): if poor economic performance lowers positive framing, does it *raise* negative framing? With `claim_align <- TRUE` the reverse-coding (1 − y) is applied for you, so the result is reported on the same scale as the rest of the curve.
 
-- **Beyond unemployment.** Preregister `my_predictor <- "growth"` (GDP growth, the claim carrier for three of the five original analysts): the claim now expects a *positive* growth coefficient on the positive framings, and the sign convention flips once more automatically. The growth mirror of the Task-3 specification, C6HJR's published Multi100 specification, (`mpos ~ growth + unemp`, two-way FE) gives b = +0.00167, t = 1.59 – non-significant.
+- **Beyond unemployment.** Preregister `my_predictor <- "growth"` (GDP growth, the measure through which three of the five original analysts tested the claim): the claim now predicts a *positive* growth coefficient on the positive framings, and the sign convention flips once more automatically. The growth mirror of the Task-3 specification – C6HJR's published Multi100 specification, `mpos ~ growth + unemp` with two-way fixed effects – gives b = +0.00167, t = 1.59, which is not significant.
 
 - **The full SCORE dossier.** OA's paper went through all three Rs in the SCORE programme and got three different verdicts: its push-button reproduction **failed** (the author-provided Stata code referenced file names that did not match what was available), its reproduction from the source data was recorded as **not reproduced**, and its preregistered secondary-data replication returned a **sign flip** (a positive coefficient, b = 0.002, p = .046, in the opposite direction to the original). Explore reproduction, robustness, and replication side by side at <https://osf.io/h7432/>.
 :::

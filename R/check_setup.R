@@ -3,14 +3,15 @@
 # Purpose:      Report R version, Quarto, the required packages, and whether the
 #               workspace data files are present and readable. Prints an
 #               [OK] / [FAIL] / [SKIP] line per check and a verdict. It only
-#               looks – nothing here changes your system.
+#               checks, and changes nothing on your system.
 # Sourced by:   the participant, before the session (source("R/check_setup.R"))
 # Author:       Chris Moreh
 # Last updated: 2026-09-08
 # ########################################################################### #
 
-# A FAIL is not the end of the world: the course's browser lab runs the same
-# exercise inside a web browser. The message at the bottom says what to do.
+# A FAIL is not the end of the world: the browser lab on the course site runs
+# the same exercise inside a web browser. The message at the bottom says what
+# to do.
 
 # --- tiny reporting helpers -------------------------------------------------
 .results <- new.env()
@@ -47,11 +48,11 @@ if (nzchar(qv) && !grepl("not found|error", qv, ignore.case = TRUE)) {
 }
 
 # --- 3. packages ------------------------------------------------------------
-# The gaussian menu paths need fixest and plm; the beta family adds betareg
-# (fixed-effects and pooled designs), glmmTMB (random effects) and sandwich
-# (the cluster-robust pooled beta). All are checked so any menu choice runs.
-# rmarkdown is what Quarto drives to run the report's R chunks, so a fresh R
-# without it renders nothing.
+# The gaussian options on the menu need fixest and plm, and the beta family
+# adds betareg (fixed-effects and pooled designs), glmmTMB (random effects) and
+# sandwich (the cluster-robust pooled beta). All are checked so that any menu
+# choice runs. Quarto runs the R chunks of the report through rmarkdown, so a
+# fresh R installation without it renders nothing.
 needed <- c("dplyr", "readr", "ggplot2", "broom", "fixest", "plm",
             "dagitty", "ggdag", "modelsummary", "osfr", "betareg",
             "glmmTMB", "sandwich", "rmarkdown")
@@ -66,10 +67,11 @@ if (length(missing) == 0) {
 }
 
 # --- 4. data files present and readable -------------------------------------
-# The report renders offline because these ship inside the workspace. Confirm
-# they are here and that each reads as a country-year panel. EUframes_cy.csv is
-# the panel every task fits against; rep_data.csv is the as-submitted Multi100
-# artefact, kept alongside it as provenance and used by no task.
+# The report renders offline because these ship inside the workspace. The loop
+# confirms that they are here and that each reads as a country-year panel.
+# EUframes_cy.csv is the panel on which every task is fitted. rep_data.csv is
+# the as-submitted Multi100 artefact, kept alongside it as provenance and used
+# by no task.
 data_files <- c("data/EUframes_cy.csv", "data/rep_data.csv")
 for (f in data_files) {
   if (!file.exists(f)) {
@@ -84,14 +86,14 @@ for (f in data_files) {
   }
 }
 
-# The codebook the tasks refer to.
+# The codebook that the tasks refer to.
 if (file.exists("data/EUframes_cy_codebook.md")) {
   ok("data/EUframes_cy_codebook.md present")
 } else {
   skip("data/EUframes_cy_codebook.md not found (optional reference)")
 }
 
-# --- 5. the report renders? -------------------------------------------------
+# --- 5. the report file -----------------------------------------------------
 # index.qmd is what you open and work in. Its presence is the last check.
 if (file.exists("index.qmd")) {
   ok("index.qmd present – open it to start")
@@ -109,9 +111,9 @@ if (.results$fail == 0) {
 } else {
   cat("\nSome checks failed. Two options:\n",
       " 1. Fix the FAILs above (each line says how), then re-run this script.\n",
-      "    The course site's setup help page lists the common failures and fixes.\n",
+      "    The help page on the course site lists the common failures and fixes.\n",
       " 2. Come anyway – the browser lab runs the same exercise inside a web\n",
-      "    browser, and a partner's laptop can drive the rest.\n",
+      "    browser, and you can work through the rest on a partner's laptop.\n",
       sep = "")
 }
 cat("\n")

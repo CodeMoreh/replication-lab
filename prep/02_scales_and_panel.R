@@ -1,15 +1,16 @@
 # ########################################################################### #
 # Title:        02_scales_and_panel.R – from items to scales to the panel
-# Purpose:      Walk from the respondent file that 01_build_respondents.R wrote
-#               to the country-year panel that the course ships, one decision
-#               at a time: which items form which scale, how a respondent's
-#               answers are scored, what happens to a respondent who named
-#               nothing, how respondents are averaged into a country-year, and
-#               how the macro series are merged in. The panel it rebuilds is
-#               compared with data/EUframes_cy.csv, which it reproduces to
-#               machine precision when the respondent file passed its checks.
-#               The last section builds the panel by education band, which the
-#               individual-level extension of the course works on.
+# Purpose:      Rebuild the country-year panel that ships with the course from
+#               the respondent file written by 01_build_respondents.R, one
+#               decision at a time: which items form which scale, how a
+#               respondent's answers are scored, what happens to a respondent
+#               who named nothing, how respondents are averaged into a
+#               country-year, and how the macro series are merged in. The
+#               rebuilt panel is compared with data/EUframes_cy.csv, which it
+#               reproduces to machine precision when the respondent file has
+#               passed its checks. The last section builds the panel by
+#               education band, which the individual-level extension of the
+#               course uses.
 # Reads:        data_private/eb_respondents.rds
 #               data/EUframes_cy.csv, data/predictor_measures.csv,
 #               data/teney_panel_weights.csv
@@ -45,16 +46,16 @@ items13   <- c(items$pos, items$neg)
 # --- 2. three scoring rules ------------------------------------------------------
 # A respondent's answers to a set of items can be turned into one number in
 # more than one way, and the course menu offers three. The share is the
-# published rule: the set's mentions over the respondent's own total. The
-# count is the number of the set's items mentioned. The per-item rate is the
-# count over the number of items in the set. Which of the three you use is a
-# decision about what the outcome is, and the specification menu treats it as
-# one.
+# published rule: the mentions from the set over the respondent's own total.
+# The count is the number of items in the set that were mentioned. The
+# per-item rate is the count over the number of items in the set. Which of
+# the three you use is a decision about what the outcome is, and the
+# specification menu treats it as one.
 #
 # A respondent who mentioned none of the thirteen items has no total to divide
-# by. The published rule scores them zero on every scale; the menu's other
-# rules (drop, split, impute) are applied further down the pipeline, and the
-# missing-answers module is the place to read about them.
+# by. The published rule scores them zero on every scale. The other rules on
+# the menu (drop, split, impute) are applied further down the pipeline and are
+# explained in the missing-answers module.
 scored <- respondents |>
   mutate(n_all = rowSums(across(all_of(items13))))
 
@@ -68,9 +69,9 @@ for (s in names(items)) {
 
 # --- 3. from respondents to country-years -----------------------------------------
 # The course panel averages every respondent in a country-year with the same
-# weight ("as interviewed"). The design weight w1, which GESIS supplies to
+# weight ('as interviewed'). The design weight w1, which GESIS supplies to
 # correct each national sample to its population, is the other choice, and the
-# weights module sets the two side by side. Both are computed here.
+# weights module compares the two. Both are computed here.
 cells <- scored |>
   summarise(
     across(starts_with("s_"), mean, .names = "m{.col}"),
@@ -84,11 +85,12 @@ cells <- scored |>
   rename_with(\(x) sub("^mc_", "c_m", x), starts_with("mc_"))
 
 # --- 4. the macro series ----------------------------------------------------------
-# The panel's unemployment rate is the World Bank's national estimate
-# (SL.UEM.TOTL.NE.ZS) and its growth series is the World Bank's annual GDP
-# growth (NY.GDP.MKTP.KD.ZG); both are open data. The course ships every
-# series the menu offers in data/predictor_measures.csv, so the merge below
-# works offline. The same two series can be fetched live with the WDI package:
+# The unemployment rate in the panel is the national estimate from the World
+# Bank (SL.UEM.TOTL.NE.ZS), and the growth series is annual GDP growth from the
+# same source (NY.GDP.MKTP.KD.ZG). Both are open data. Every series offered on
+# the menu ships with the course in data/predictor_measures.csv, so the merge
+# below works offline. The same two series can be fetched live with the WDI
+# package:
 #
 #   WDI::WDI(country = unique(cells$cntry),
 #            indicator = c(unemp = "SL.UEM.TOTL.NE.ZS", growth = "NY.GDP.MKTP.KD.ZG"),
@@ -96,7 +98,8 @@ cells <- scored |>
 #
 # and the Eurostat alternatives with eurostat::get_eurostat(). A live fetch may
 # differ from the committed values in the last decimals, because the Bank
-# revises past years; the committed file records the vintage the course used.
+# revises past years. The committed file records the vintage that the course
+# used.
 macro <- measures |>
   filter(measure %in% c("wb_nat", "wb_growth")) |>
   select(cntry, year, predictor, value) |>
@@ -111,7 +114,7 @@ rebuilt <- cells |>
   left_join(bailout, by = c("cntry", "year")) |>
   arrange(cntry, year)
 
-# --- 5. does it reproduce the panel? -----------------------------------------------
+# --- 5. comparison with the course panel -------------------------------------------
 compare <- panel |>
   inner_join(rebuilt, by = c("cntry", "year"), suffix = c("_course", "_rebuilt"))
 

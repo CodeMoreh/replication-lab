@@ -16,20 +16,22 @@
 # ########################################################################### #
 
 # The code you work through is analyst C6HJR's own submitted analysis, adapted
-# so it runs from the committed CSV alone. The upstream data-preparation step –
-# which assembles this panel from the raw GESIS Eurobarometer waves – is the
-# read-only exhibit prep/prep_exhibit.R; it needs raw files not shipped here.
+# so it runs from the committed CSV alone. The upstream data-preparation step,
+# which assembles this panel from the raw GESIS Eurobarometer waves, is the
+# read-only exhibit prep/prep_exhibit.R. It needs raw files that are not
+# shipped here.
 
 library(dplyr)
 library(readr)
 library(fixest)
 library(broom)
 
-# The one working object, and the preregister -> build -> run -> report helpers.
+# The one working object, and the helpers that explore, preregister, build,
+# run and report a specification.
 euframes <- read_csv("data/EUframes_cy.csv", show_col_types = FALSE)
 source("R/spec_tools.R")
 
-## ---- Task 2: look at the panel --------------------------------------------
+## ---- Task 2: meet the panel -----------------------------------------------
 
 # One row per country-year: 27 EU member states x 10 years, 2004–2013.
 euframes |>
@@ -44,34 +46,36 @@ euframes |>
 ## ---- Task 3: reproduce the recorded result --------------------------------
 
 # Grand-mean centred unemployment, which is the transformation that the
-# constrained specification names. With two-way fixed effects this shifts the
-# intercept, not the slope or the t.
+# constrained specification names. With two-way fixed effects this shifts only
+# the intercept and leaves the slope and its t unchanged.
 euframes <- euframes |>
   mutate(unemp_c = unemp - mean(unemp))
 
 # Two-way (country + year) fixed effects – the constrained Multi100 Task-2
-# model. The coefficient is -0.00347, t = -3.804 on 233 df: the value on record
-# for analyst C6HJR, reproduced from the published data and the published model.
+# model. The coefficient is -0.00347, t = -3.804 on 233 df, which is the value
+# on record for analyst C6HJR, reproduced from the published data and the
+# published model.
 m1 <- feols(mcosmo ~ unemp_c | cntry + year, data = euframes)
 tidy(m1)
 
-## ---- Task 4: explore the menu ---------------------------------------------
+## ---- Task 4: work the menu ------------------------------------------------
 
 # Nothing here commits you to anything. try_spec() takes one argument per axis
-# of the fourteen-axis menu and every one already carries the baseline you just
-# reproduced, so changing one thing means changing one argument. Level 1
-# arguments change the question; Level 2 arguments select which version of
-# the panel is fitted; Level 3 arguments fix the arithmetic.
+# of the fourteen-axis menu, and every one defaults to the baseline that you
+# have just reproduced, so changing one thing means changing one argument.
+# Level 1 arguments change the question, Level 2 arguments select which
+# version of the panel is fitted, and Level 3 arguments change how the model
+# is estimated.
 try_spec()                          # the baseline itself
-try_spec(outcome   = "mpos")         # all positive framings, not cosmopolitan alone
-try_spec(estimator = "pooled_cl")    # no between-country comparison absorbed
+try_spec(outcome   = "mpos")         # all positive framings, cosmopolitan and utilitarian together
+try_spec(estimator = "pooled_cl")    # pooled: differences between countries are not absorbed
 try_spec(sample    = "no_bailout")   # drop the assistance-programme countries
 try_spec(weights   = "pop")          # let each country count by its adult population
 try_spec(noop      = "drop")         # leave out the respondents who mentioned no frame
 try_spec(measure   = "es_2064_pop")  # a Eurostat unemployment series instead of the World Bank one
 
-# The running log of everything you have tried – the small multiverse you
-# just built. Only the axes that actually varied are printed.
+# The running log of everything you have tried, a small multiverse of your
+# own. Only the axes that varied are printed.
 my_experiments()
 
 # Send the most recent one to the class chart, labelled as exploration.
@@ -80,22 +84,22 @@ submit_exploration()
 ## ---- Task 5: preregister one specification --------------------------------
 
 # One choice on each of the fourteen axes. The six Level 1 choices fix the
-# question, the five Level 2 choices fix how it is measured, the three Level 3
-# choices fix the arithmetic. claim_align = TRUE is the course convention,
-# applied automatically: negative framings are reverse-coded (1 - y) and the
-# claim-expected sign for growth is flipped, so 'supports the claim' is a
-# negative sign.
+# question, the five Level 2 choices fix how it is measured, and the three
+# Level 3 choices fix how the model is estimated. claim_align = TRUE is the
+# course convention, applied automatically: negative framings are
+# reverse-coded (1 - y) and the claim-expected sign for growth is flipped, so
+# 'supports the claim' is a negative sign.
 
 # Level 1 – Estimands (each of these changes what is being estimated)
 my_outcome      <- "mcosmo"       # mcosmo | mutil | mpos    (positive framings)
                                   # mcomm  | mlib  | mneg    (negative framings)
-my_predictor    <- "unemp"        # unemp | growth    (the claim-carrying measure)
+my_predictor    <- "unemp"        # unemp | growth    (the measure that the claim is about)
 my_copredictor  <- "none"         # none | other      (the other macro measure, adjusted for)
 my_estimator    <- "fe_twoway"    # fe_twoway | fe_country | re | pooled_cl
 my_sample       <- "all"          # all | y2004_2008 | y2009_2013 | no_bailout | no_GR_ES
 my_weights      <- "none"         # none | n_cell | n_eff | pop   (re is never weighted)
 my_construction <- "share"        # share | count | rate   (share of own mentions, count of the
-                                  #   set's items, or count per item in the set)
+                                  #   items in the set, or count per item in the set)
 
 # Level 2 – Measurement (the same question, put to the data differently)
 my_noop         <- "zero"         # zero | drop | split | mi_mice | mi_amelia
@@ -120,14 +124,15 @@ prereg()   # checks every choice against the menu and records the declaration
 
 # Translate the declaration into model syntax yourself: the outcome, the
 # right-hand side, the estimator code. build_model() refuses anything that does
-# not match the preregistration; run_spec() then expands the estimator, family,
+# not match the preregistration. run_spec() then expands the estimator, family,
 # sample and weights into the real fixest / plm / betareg / glmmTMB call, fitted
 # on the version of the panel that the measurement choices select.
 my_model <- build_model(mcosmo ~ unemp, estimator = "fe_twoway")
 run_spec(my_model)
 
 
-# Argument-free and prereg-driven: it refits, builds the spec label, and always
-# submits on the claim-aligned scale that the chart is drawn on. Open the
-# printed link and press Send.
+# report_result() takes no arguments and works from the preregistration. It
+# refits the model, builds the spec label, and always submits on the
+# claim-aligned scale on which the chart is drawn. Open the printed link and
+# press Send.
 report_result()

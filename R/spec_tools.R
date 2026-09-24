@@ -15,16 +15,17 @@
 #               submits it.
 #
 #               Every fit is a live estimation. The six Level 1 decisions fix
-#               the question; the Level 2 decisions select which version of the
+#               the question. The Level 2 decisions select which version of the
 #               country-year panel is fitted (how the outcome was built from the
 #               items, what was done with respondents who mentioned nothing,
 #               whether the "unemployment" item is in, whether cells are
-#               design-weighted, which published series carries the predictor);
-#               the Level 3 decisions fix the arithmetic. The one exception is
-#               the multiple-imputation option of the no-opinion axis, which
-#               needs the respondent-level file that GESIS does not let travel:
-#               its pooled results are read from data/spec_grid_mi.csv and the
-#               printout says so.
+#               design-weighted, and which published series supplies the
+#               predictor), and the Level 3 decisions fix how the model is
+#               estimated. The one exception is the multiple-imputation option
+#               of the no-opinion axis, which needs the respondent-level file
+#               that the GESIS licence does not allow to be redistributed. Its
+#               pooled results are read from data/spec_grid_mi.csv, and the
+#               printout names that source.
 # Reads:        the `euframes` object in the calling environment (the base
 #               country-year panel), data/teney_panel_measurement.csv,
 #               data/teney_panel_weights.csv, data/predictor_measures.csv,
@@ -41,11 +42,11 @@
 .k_items <- list(all = c(mcosmo = 5, mutil = 2, mcomm = 4, mlib = 2, mpos = 7, mneg = 6),
                  un  = c(mcosmo = 5, mutil = 2, mcomm = 3, mlib = 2, mpos = 7, mneg = 5))
 
-# The menu, grouped as the course groups it. Level 1 changes the question,
-# Level 2 the measurement, Level 3 the estimation. The scoring rule is a
-# Level 1 decision: a share of a respondent's own mentions and a count of the
-# set's items are different quantities, and the per-item rate is the count
-# divided by the number of items in the set.
+# The menu, in the three levels used throughout the course. Level 1 changes
+# the question, Level 2 the measurement, Level 3 the estimation. The scoring
+# rule is a Level 1 decision: a share of a respondent's own mentions and a
+# count of the items in the set are different quantities, and the per-item
+# rate is the count divided by the number of items in the set.
 .menu <- list(
   # Level 1 – Estimands
   my_outcome      = .outcomes,
@@ -85,9 +86,9 @@ names(.level) <- names(.menu)
   re         = "random effects",
   pooled_cl  = "pooled OLS")[[e]]
 
-# The term for the claim-carrying predictor as it appears in a formula and in
-# the fitted coefficient table: log(unemp) when the log form is chosen, else
-# the bare variable name.
+# The term for the predictor that the claim is about, as it appears in a
+# formula and in the fitted coefficient table: log(unemp) when the log form is
+# chosen, else the bare variable name.
 .main_term <- function(ch) {
   if (ch$my_predictor == "unemp" && ch$my_pred_form == "log") "log(unemp)"
   else ch$my_predictor
@@ -100,8 +101,8 @@ names(.level) <- names(.menu)
 # reads the fourteen my_* choices and claim_align out of the calling
 # environment, which is how the declared flow reads the preregistration block.
 .validate <- function(ch, as_args = FALSE) {
-  # the earlier menu named the co-predictor by its variable; both spellings
-  # still work, and the old weight code n_cy means the respondent count
+  # the co-predictor may also be named by its variable (growth or unemp), and
+  # the weight code n_cy is read as n_cell, the respondent count
   if (identical(ch$my_copredictor, .copred_term(ch))) ch$my_copredictor <- "other"
   if (identical(ch$my_weights, "n_cy")) ch$my_weights <- "n_cell"
   for (k in names(.menu)) {
@@ -154,11 +155,11 @@ names(.level) <- names(.menu)
 
 # --- the data behind a specification ---------------------------------------
 # The base panel `euframes` supplies the cell identifiers, the bailout flag
-# and the World Bank series; the measurement panel supplies the outcome under
+# and the World Bank series. The measurement panel supplies the outcome under
 # the chosen construction, item set, no-opinion rule and cell weighting, with
-# the cell counts that go with them; the predictor series file supplies the
-# chosen published series; the weights panel supplies adult population. Files
-# are read once and cached.
+# the cell counts that go with them. The predictor series file supplies the
+# chosen published series, and the weights panel the adult population. Each
+# file is read once and cached.
 .cache <- new.env(parent = emptyenv())
 .read_once <- function(name, path) {
   if (is.null(.cache[[name]])) {
@@ -219,11 +220,12 @@ names(.level) <- names(.menu)
          call. = FALSE)
 
 # --- the live fit ----------------------------------------------------------
-# gaussian: fixest for the fixed-effects and pooled designs, plm for random
-# effects; beta (logit link): betareg with country/year dummies, glmmTMB for
+# The gaussian family is fitted with fixest for the fixed-effects and pooled
+# designs and with plm for random effects. The beta family (logit link) is
+# fitted with betareg, using country and year dummies, and with glmmTMB for
 # random effects. Regression weights are normalised to the sample size for the
-# beta family, as case weights need to be. The standard-error convention is
-# applied to the same fit: conventional, or clustered by country.
+# beta family, as case weights need to be. Either standard-error convention,
+# conventional or clustered by country, is applied to the same fit.
 .fit_spec <- function(ch) {
   if (ch$my_noop %in% c("mi_mice", "mi_amelia")) return(.lookup_mi(ch))
   d   <- .build_data(ch)
@@ -254,7 +256,7 @@ names(.level) <- names(.menu)
     }
   } else {
     # as.numeric() because the population column is integer, and its product
-    # with the row count overflows R's integer range for the large countries
+    # with the row count overflows the integer range of R for the large countries
     wts_b <- if (is.null(wts)) NULL else as.numeric(wts) * nrow(d) / sum(as.numeric(wts))
     if (ch$my_estimator == "re") {
       .need_pkg("glmmTMB")
@@ -294,11 +296,12 @@ names(.level) <- names(.menu)
     stop("That imputed variant did not pool when the results were computed – choose the other engine or another no-opinion rule.",
          call. = FALSE)
   list(estimate = hit$estimate, se = hit$std_error, statistic = hit$statistic,
-       df = hit$df, n = hit$n, r = hit$r, source = "read from the pre-computed imputation tier")
+       df = hit$df, n = hit$n, r = hit$r, source = "read from the pre-computed imputation results")
 }
 
-# The one-line spec label that the class chart reads: the six Level 1 choices,
-# then the measurement and estimation choices in brackets.
+# The one-line spec label that is parsed for the class chart: six of the
+# Level 1 choices, then in brackets the scoring rule and the measurement and
+# estimation choices.
 .spec_line <- function(ch) {
   neg <- ch$my_outcome %in% .neg_framings
   paste0(ch$my_outcome, if (neg) "_ca" else "", " ~ ", ch$my_predictor, "(", ch$my_pred_form, ")",
@@ -378,7 +381,7 @@ submit_exploration <- function() {
 prereg <- function() {
   ch  <- .check_choices()
   neg <- ch$my_outcome %in% .neg_framings
-  cat("DECLARED – one specification, recorded before seeing its result:\n\n")
+  cat("DECLARED – one specification, recorded before you see its result:\n\n")
   cat("  The question (Level 1)\n")
   cat("    outcome    :", ch$my_outcome,
       if (neg) "(negative framing – reverse-coded automatically)" else "", "\n")
@@ -394,9 +397,9 @@ prereg <- function() {
   cat("  The estimation (Level 3)\n")
   cat("    form:", ch$my_pred_form, "  family:", ch$my_family, "  errors:", ch$my_se, "\n")
   cat("  claim_align:", isTRUE(claim_align), "\n\n")
-  cat("These choices are now fixed for the rest of the session – the later\n")
+  cat("These choices are now fixed for the rest of the session, and the later\n")
   cat("cells read them from here. This rendered cell is your preregistration\n")
-  cat("record: it timestamps the choice before you see its result.\n")
+  cat("record, which timestamps the choice before you see its result.\n")
   invisible(ch)
 }
 
@@ -407,7 +410,7 @@ build_model <- function(formula, estimator) {
          call. = FALSE)
   lhs <- all.vars(formula[[2]])
   if (!identical(lhs, ch$my_outcome))
-    stop(sprintf("The outcome in your formula is '%s' but you preregistered '%s'. The preregistration is binding – fix the formula, not the prereg.",
+    stop(sprintf("The outcome in your formula is '%s' but you preregistered '%s'. The preregistration is binding, so change the formula to match it.",
                  deparse(formula[[2]]), ch$my_outcome), call. = FALSE)
   want <- c(.main_term(ch), if (ch$my_copredictor == "other") .copred_term(ch))
   got  <- attr(terms(formula), "term.labels")
@@ -420,7 +423,7 @@ build_model <- function(formula, estimator) {
   if (missing(estimator) || !identical(estimator, ch$my_estimator))
     stop(sprintf("estimator = \"%s\" does not match your preregistered \"%s\".",
                  if (missing(estimator)) "" else estimator, ch$my_estimator), call. = FALSE)
-  cat("Model accepted – it matches your preregistration exactly:\n")
+  cat("Model accepted – it matches your preregistration:\n")
   cat("  ", deparse(formula), ", estimated by ", .est_lab(estimator), "\n", sep = "")
   cat("  Run it with run_spec(my_model).\n")
   structure(list(choices = ch, formula = formula, estimator = estimator), class = "spec_ticket")
@@ -448,7 +451,7 @@ run_spec <- function(spec) {
   if (ca && ch$my_predictor == "growth")
     cat("  (growth predictor – sign convention flipped automatically: claim_align = TRUE)\n")
   if (!ca)
-    cat("  (claim_align = FALSE: shown on this outcome's own scale; the class chart converts)\n")
+    cat("  (claim_align = FALSE: shown on the scale of this outcome, and converted for the class chart)\n")
   cat(sprintf("\n  b = %.5f   se = %.5f   %s = %.3f on %d df   p %s\n",
               b, fit$se, stat_lab, tv, round(fit$df),
               if (p < 0.001) "< 0.001" else sprintf("= %.3f", p)))
@@ -457,9 +460,9 @@ run_spec <- function(spec) {
 }
 
 # One submission, used by both phases. The phase is prefixed to the free-text
-# spec label, and all fourteen decisions travel inside that label; the form,
-# its fields and the collection pipeline are frozen infrastructure and do not
-# change.
+# spec label, and all fourteen decisions are written into that label. The
+# form, its fields and the collection pipeline are frozen infrastructure and
+# do not change.
 .submit <- function(ch, fit, phase, lead) {
   fl <- .flip(ch)
   b <- fl * fit$estimate; tv <- fl * fit$statistic; r <- fl * fit$r

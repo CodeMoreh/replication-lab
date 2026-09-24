@@ -1,20 +1,21 @@
 # ============================================================================
 # get_data.R – fetch the EU-frames panel the way a researcher would
 # ----------------------------------------------------------------------------
-# NOTE: EUframes_cy.csv already ships inside this template's data/ folder, so
-# the report renders offline without ever running this script. This file is the
-# OSF-access EXERCISE, not a hard dependency – run it to practise pulling a real
+# NOTE: EUframes_cy.csv already ships inside the data/ folder of this workspace,
+# so the report renders offline without ever running this script. This file is
+# an optional EXERCISE in OSF access: run it to practise pulling a real
 # published artefact from the Open Science Framework. If every remote step fails
 # (no network, OSF down), the committed copy is used and the report still works.
 #
-# The fetch chain, most "proper" first, each step announced with a message():
+# The steps are tried in order, the most 'proper' first, and each is announced
+# with a message():
 #   1. file already present  -> nothing to do
 #   2. osfr: node 6zqct main folder -> download EUframes_cy.csv   (analyst's fork)
-#   3. workshop site mirror   https://codemoreh.github.io/applied-replication/data/EUframes_cy.csv
+#   3. course site mirror     https://codemoreh.github.io/applied-replication/data/EUframes_cy.csv
 #
 # Note on OSF nodes: the analyst's fork is osf.io/6zqct ("Multi100 |
 # Teney_EurSocioRev_2016 | Analyst_C6HJR"), maintained for educational use; its
-# main folder carries EUframes_cy.csv, the panel this exercise uses. The
+# main folder contains EUframes_cy.csv, the panel that this exercise uses. The
 # official Multi100 archival record is osf.io/8rtwe.
 #
 # Usage:
@@ -32,9 +33,9 @@ get_data <- function(dest = "data/EUframes_cy.csv") {
   }
 
   # --- Step 2: the proper way – the osfr package ----------------------------
-  # osfr talks to the OSF API. Node 6zqct is the analyst's fork (maintained for
-  # educational use); EUframes_cy.csv sits in its main folder. Anonymous access
-  # works for public nodes, so no OSF login is needed.
+  # osfr is an R client for the OSF API. Node 6zqct is the analyst's fork
+  # (maintained for educational use), and EUframes_cy.csv is in its main
+  # folder. Anonymous access works for public nodes, so no OSF login is needed.
   message("[2/3] Trying osfr (OSF fork 6zqct main folder -> EUframes_cy.csv) …")
   ok <- tryCatch({
     if (!requireNamespace("osfr", quietly = TRUE)) {
@@ -55,10 +56,11 @@ get_data <- function(dest = "data/EUframes_cy.csv") {
     return(invisible(dest))
   }
 
-  # --- Step 3: the workshop site mirror -------------------------------------
-  # Last resort that does not touch OSF at all – a plain-HTTPS copy hosted on
-  # the workshop's own GitHub Pages site, which serves the data/ folder verbatim.
-  message("[3/3] Trying the workshop site mirror …")
+  # --- Step 3: the course site mirror ---------------------------------------
+  # The last resort does not touch OSF at all. It downloads a plain-HTTPS copy
+  # from the GitHub Pages site of the course, which serves the data/ folder
+  # verbatim.
+  message("[3/3] Trying the course site mirror …")
   ok <- tryCatch({
     utils::download.file(
       "https://codemoreh.github.io/applied-replication/data/EUframes_cy.csv",
