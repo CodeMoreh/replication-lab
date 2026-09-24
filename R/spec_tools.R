@@ -4,15 +4,16 @@
 #               the helpers that the report and the working script use, in two
 #               groups.
 #
-#               EXPLORATORY (Task 4), where nothing is committed: try_spec()
+#               EXPLORATORY (Task 4), where every choice stays open: try_spec()
 #               fits any specification from arguments that default to the
 #               reproduced baseline, my_experiments() prints the running log,
 #               and submit_exploration() sends the last one to the class chart.
 #
-#               DECLARED (Task 5), where the choice binds: prereg() records one
-#               specification, build_model() checks a hand-written formula
-#               against it, run_spec() fits the real model, report_result()
-#               submits it.
+#               DECLARED (Task 5), where one specification is fixed in the
+#               preregistration block before it is fitted: prereg() checks it
+#               against the menu and prints it, build_model() checks a
+#               hand-written formula against it, run_spec() fits the real
+#               model, report_result() submits it.
 #
 #               Every fit is a live estimation. The seven Level 1 decisions fix
 #               the question, and one of them, the scoring rule, also sets how
@@ -377,12 +378,12 @@ submit_exploration <- function() {
           "Your exploratory submission (claim-aligned, the last specification you tried):")
 }
 
-# --- the declared helpers that the report uses -----------------------------
+# --- Task 5: the preregistration helpers -----------------------------------
 
 prereg <- function() {
   ch  <- .check_choices()
   neg <- ch$my_outcome %in% .neg_framings
-  cat("DECLARED – one specification, recorded before you see its result:\n\n")
+  cat("DECLARED – your preregistered specification, fixed before the model is fitted:\n\n")
   cat("  The question (Level 1)\n")
   cat("    outcome    :", ch$my_outcome,
       if (neg) "(negative framing – reverse-coded automatically)" else "", "\n")
@@ -398,9 +399,9 @@ prereg <- function() {
   cat("  The estimation (Level 3)\n")
   cat("    form:", ch$my_pred_form, "  family:", ch$my_family, "  errors:", ch$my_se, "\n")
   cat("  claim_align:", isTRUE(claim_align), "\n\n")
-  cat("These choices are now fixed for the rest of the session, and the later\n")
-  cat("cells read them from here. This rendered cell is your preregistration\n")
-  cat("record, which timestamps the choice before you see its result.\n")
+  cat("build_model(), run_spec() and report_result() read these choices from\n")
+  cat("here. Rendered into your report, this cell is your preregistration, and\n")
+  cat("it sits above the cells that fit and submit this specification.\n")
   invisible(ch)
 }
 

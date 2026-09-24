@@ -62,8 +62,8 @@ The tasks in `index.qmd` map to the day's learning objectives:
 - **The three Rs.** Distinguish reproducibility, robustness, and replicability – and say why the distinction matters. *(Task 1)*
 - **Meet the data.** Read the country-year panel and look at the outcome over time. *(Task 2)*
 - **State the estimand and encode it in a DAG.** Write the target quantity, then derive an adjustment set with `adjustmentSets()`. *(Task 2, continued)*
-- **Reproduce the recorded result.** Fit the two-way fixed-effects model on the panel and confirm **t = −3.804**, the value on record for this analyst. *(Task 3)*
-- **Work the specification menu.** Fit alternative specifications with `try_spec()`, compare them, and send the one you would defend to the class chart as an exploratory result. *(Task 4)*
+- **Reproduce the recorded result.** Fit the two-way fixed-effects model on the panel and confirm **t = −3.804**, the value recorded for analyst C6HJR in the Multi100 dataset. *(Task 3)*
+- **Work the specification menu.** Fit alternative specifications with `try_spec()`, compare them, and submit the one you would defend to the class chart with `submit_exploration()`, where it is labelled exploratory. *(Task 4)*
 - **Preregister, then build and run.** Complete the preregistration block, then translate it into a real fit and read the claim-aligned result. *(Task 5)*
 - **Locate yourself in the multiverse.** Submit your result with `report_result()` and find your dot among the others on the class chart. *(Task 5, continued)*
 - **Go further.** Sweep a whole axis, test the mirror-image expectation, use GDP growth as the predictor, or read the full SCORE dossier. *(Going further)*
@@ -73,7 +73,7 @@ The tasks in `index.qmd` map to the day's learning objectives:
 ## Links
 
 - **Course site:** https://codemoreh.github.io/applied-replication/
-- **Submit your result:** run `report_result()` – it prints a one-click link that adds your result to the live multiverse chart at https://codemoreh.github.io/applied-replication/results.html
+- **Submit your results:** `submit_exploration()` in Task 4 and `report_result()` in Task 5 each print a link to a pre-filled Google Form; open it and press **Send**, and the result appears on the live multiverse chart at https://codemoreh.github.io/applied-replication/results.html
 - **Take-home git/GitHub path:** https://codemoreh.github.io/applied-replication/companion/git-github.html
 - **The OSF analyst fork:** https://osf.io/6zqct/ – the analyst's maintained fork, which holds the working materials and the panel that this workspace uses. The official Multi100 archival record is at https://osf.io/8rtwe/.
 

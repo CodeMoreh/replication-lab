@@ -1,10 +1,10 @@
 # ########################################################################### #
 # Title:        Working script – the EU-frames robustness exercise, plain R
 # Purpose:      Tasks 2 to 5 of index.qmd, as a script you can step through in
-#               the console: look at the panel, reproduce the recorded result
-#               (t = -3.804), explore the specification menu, then declare one
-#               specification and fit and report it. Every fit is live, on
-#               `euframes`.
+#               the console: look at the panel, reproduce the result recorded
+#               in Multi100 (t = -3.804), explore the specification menu, then
+#               preregister one specification and fit and report it. Every fit
+#               is live, on `euframes`.
 # Reads:        data/EUframes_cy.csv   (the EU-frames country-year panel);
 #               through R/spec_tools.R, data/teney_panel_measurement.csv,
 #               data/teney_panel_weights.csv, data/predictor_measures.csv and
@@ -53,16 +53,19 @@ euframes <- euframes |>
 
 # Two-way (country + year) fixed effects – the constrained Multi100 Task-2
 # model. The coefficient is -0.00347, t = -3.804 on 233 df, which is the value
-# on record for analyst C6HJR, reproduced from the published data and the
-# published model.
+# recorded for analyst C6HJR in the Multi100 dataset, reproduced from the
+# published data and the published model.
 m1 <- feols(mcosmo ~ unemp_c | cntry + year, data = euframes)
 tidy(m1)
 
 ## ---- Task 4: work the menu ------------------------------------------------
 
-# Nothing here commits you to anything. try_spec() takes one argument per axis
-# of the fourteen-axis menu, and every one defaults to the baseline that you
-# have just reproduced, so changing one thing means changing one argument.
+# The specification that you submit with submit_exploration() at the end of
+# this task is labelled exploratory on the class chart. The one labelled
+# declared is fixed later, in the Task 5 preregistration, before it is fitted.
+# try_spec() takes one argument per axis of the fourteen-axis menu, and every
+# one defaults to the baseline that you have just reproduced, so changing one
+# thing means changing one argument.
 # Level 1 arguments change the question, Level 2 arguments select which
 # version of the panel is fitted, and Level 3 arguments change how the model
 # is estimated.
@@ -118,15 +121,16 @@ my_se           <- "conventional" # conventional | clustered   (clustered by cou
 
 claim_align     <- TRUE           # the course convention, applied automatically
 
-prereg()   # checks every choice against the menu and records the declaration
+prereg()   # checks every choice against the menu and prints your preregistration
 
 ## ---- Task 5, continued: build, run and report -----------------------------
 
-# Translate the declaration into model syntax yourself: the outcome, the
-# right-hand side, the estimator code. build_model() refuses anything that does
-# not match the preregistration. run_spec() then expands the estimator, family,
-# sample and weights into the real fixest / plm / betareg / glmmTMB call, fitted
-# on the version of the panel that the measurement choices select.
+# Translate the preregistered specification into model syntax yourself: the
+# outcome, the right-hand side, the estimator code. build_model() refuses
+# anything that does not match the preregistration. run_spec() then expands the
+# estimator, family, sample and weights into the real fixest / plm / betareg /
+# glmmTMB call, fitted on the version of the panel that the measurement
+# choices select.
 my_model <- build_model(mcosmo ~ unemp, estimator = "fe_twoway")
 run_spec(my_model)
 

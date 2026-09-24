@@ -34,8 +34,9 @@ library(modelsummary)
 theme_set(theme_minimal(base_size = 12))
 options(scipen = 6, digits = 4)
 
-# The one working object: the EU-frames country-year panel. Every
-# later task reads its choices from your preregistration and fits against this.
+# The one working object: the EU-frames country-year panel. Task 3 fits
+# against it directly, the helpers of Tasks 4 and 5 fit against it too, and in
+# Task 5 they read their choices from your preregistration.
 euframes <- read_csv("data/EUframes_cy.csv", show_col_types = FALSE)
 
 # The preregister -> build -> run -> report helpers. Each fit they make is a
@@ -52,7 +53,7 @@ The original author (OA) studied how citizens frame the European Union. One clai
 
 Operationalised the way that the Multi100 project constrained it for its five analysts: does a country's **unemployment rate** (poor economic performance) lower the **cosmopolitan** dimension of EU framing (peace, democracy, free movement, cultural diversity, a stronger say in the world)? The published result was a coefficient of −0.0034, t = −4.03.
 
-You have the data, the tools and the workflow that the project used, and the code you work through is the coordinator's own submitted analysis. You are analyst no. 6, and the question is how robust that number is to *justifiable* alternative choices. Work through the five tasks below in order, from a setup check to two dots on the live class chart – one explored, one declared.
+You have the data, the tools and the workflow that the project used, and the code you work through is the coordinator's own submitted analysis. You are analyst no. 6, and the question is how robust that number is to *justifiable* alternative choices. Work through the five tasks below in order, from a setup check to two dots on the live class chart: an exploratory one from Task 4, and a declared one from Task 5, whose specification you fix in your preregistration before running it.
 
 ::: callout-tip
 ## How the tasks work
@@ -133,7 +134,7 @@ Before estimating, say *precisely* what you are estimating. An estimand has two 
 
 *(A defensible filling: the change in mean cosmopolitan framing within a country-year, for a one-percentage-point difference in that country's unemployment rate; across EU member states, 2004–2013.)*
 
-Next come the identification assumptions: the claims about what causes what that must hold for the coefficient to be read as the effect of unemployment. `R/dag_starter.R` builds the graph with `dagify()`, where every arrow is an ordinary R formula written the way you read a regression, effect on the left of the tilde and cause on the right. `framing ~ unemployment` is therefore the arrow unemployment → framing. The causal path and the two confounder pairs are switched on; the arguable arrows are in the same call, commented out with a `#`, each with a line of justification above it. Open the file, take the `#` off any arrow you believe, re-source, and re-run `adjustmentSets()`. A node appears in the plot only once some arrow mentions it, so the plot shows only the graph that you have committed to.
+Next come the identification assumptions: the claims about what causes what that must hold for the coefficient to be read as the effect of unemployment. `R/dag_starter.R` builds the graph with `dagify()`, where every arrow is an ordinary R formula written the way you read a regression, effect on the left of the tilde and cause on the right. `framing ~ unemployment` is therefore the arrow unemployment → framing. The causal path and the two confounder pairs are switched on; the arguable arrows are in the same call, commented out with a `#`, each with a line of justification above it. Open the file, take the `#` off any arrow you believe, re-source, and re-run `adjustmentSets()`. A node appears in the plot only once some arrow mentions it, so the plot shows only the arrows that are switched on and the nodes that they join.
 
 ```{r}
 #| label: dag
@@ -204,7 +205,7 @@ In Task 2 you named the quantity you are after and drew the graph from which you
 ------------------------------------------------------------------------
 
 ::: {.callout-note title="Task 4 – Work the menu"}
-This task is **exploratory**. Try several specifications, see what each one does, and get a feel for which choices move the estimate and which barely touch it. Nothing here commits you to anything; the commitment comes in Task 5.
+This task is **exploratory**. Try several specifications, see what each one does, and get a feel for which choices move the estimate and which barely touch it. The specification that you submit with `submit_exploration()` at the end of this task is labelled exploratory on the class chart. The one labelled declared is fixed later, in the preregistration cell of Task 5, before it is run.
 
 `try_spec()` takes one argument per axis of the fourteen-axis specification menu. Every argument defaults to the baseline that you just reproduced, so changing one thing means changing one argument, and everything you do not name stays at the baseline. Every call is a real fit: the Level 1 arguments change the question, the Level 2 arguments select which version of the country-year panel is fitted (which items the outcome was built from, whether its cells were design-weighted, what was done with respondents who mentioned nothing, which published series supplies the predictor), and the Level 3 arguments set how the model is estimated. The one exception is the two imputed no-opinion options, whose pooled results are read from a shipped file because they need the respondent-level data that cannot be distributed with the workspace. The printed output notes when this happens.
 
@@ -242,15 +243,15 @@ submit_exploration()
 ```
 
 ::: {.callout-note collapse="true" title="Why label it 'exploratory'?"}
-You chose this specification after seeing what several of them do, so it lacks the guarantee that a declared choice has: it might have been chosen *because* of its result, and neither you nor anyone else can now rule that out.
+You chose this specification after seeing what several of them do, so it lacks the guarantee carried by a choice that is fixed in a preregistration before it is run: it might have been chosen *because* of its result, and neither you nor anyone else can now rule that out.
 
-Almost no published paper reports which of its analyses were explored and which were planned. The class chart does, because everyone submits twice: once here, and once in Task 5 after declaring, so the two sets of dots can be read against each other.
+Almost no published paper reports which of its analyses were explored and which were planned. The class chart does, because everyone submits twice: once here, and once in Task 5 after preregistering a specification, so the two sets of dots can be read against each other.
 :::
 
 ------------------------------------------------------------------------
 
 ::: {.callout-note title="Task 5 – My preregistration"}
-Preregistration commits you to a choice **before** you see what it does, which stops you from quietly picking the specification that happens to give the answer you wanted. In this report the commitment is also enforced by the code. The session remembers the choices that you declare in the cell below, every later cell reads them from there, and the model builder refuses code that deviates from them.
+A preregistration fixes your specification **before** you know its result, which stops you from quietly picking the one that happens to give the answer you wanted. In a real study it is filed, with a date stamp, in a public registry such as the OSF. In this report the preregistration is the cell below, and the code enforces it: the R session keeps the choices that you set in that cell, every later cell reads them, and `build_model()` refuses model code that departs from them.
 
 Make one choice on each of the fourteen axes of the specification menu, then run the cell. The seven Level 1 choices fix the question you are asking, the four Level 2 choices fix how that question is measured, and the three Level 3 choices fix how it is estimated. Every axis is live. `claim_align <- TRUE` is the course convention, applied automatically: negative framings are reverse-coded (1 − y) and the claim-expected sign for growth is flipped, so 'supports the claim' reads as a negative sign for everyone.
 
@@ -303,7 +304,7 @@ claim_align     <- TRUE           # the course convention, applied automatically
 # 5. Supported if the claim-aligned coefficient is negative and p < .05;
 #    undermined if non-significant or positive. I will report what I get.
 
-prereg()   # checks every choice against the menu and records the declaration
+prereg()   # checks every choice against the menu and prints your preregistration
 ```
 
 An optional mirror form can be used to log preregistrations for the class, and the link to it is shared in the session. It is not required: the cell above, rendered into this report, is your official preregistration.
@@ -311,9 +312,9 @@ An optional mirror form can be used to log preregistrations for the class, and t
 ------------------------------------------------------------------------
 
 ::: {.callout-note title="Task 5, continued – build, run and report"}
-This is the **robustness** check, and it is the part that your classmates cannot copy from you. Together, the class samples the multiverse of defensible analyses. You have declared your specification; now translate it into model syntax yourself.
+This is the **robustness** check, and it is the part that your classmates cannot copy from you. Together, the class samples the multiverse of defensible analyses. Your specification is now fixed in the preregistration cell above, and the next step is to translate it into model syntax yourself.
 
-Fill the outcome, the right-hand side, and the estimator code exactly as you preregistered them. `build_model()` checks your code against your declaration and will not accept anything else; its error messages say what does not match. Write the log form as `log(unemp)`, and add any co-predictor with `+`. You do **not** write the fixed-effects, clustering, or family syntax here – the estimator and family codes stand for it, and `run_spec()` expands them into the real fit.
+Fill the outcome, the right-hand side, and the estimator code exactly as you preregistered them. `build_model()` checks your code against your preregistration and will not accept anything else; its error messages say what does not match. Write the log form as `log(unemp)`, and add any co-predictor with `+`. You do **not** write the fixed-effects, clustering, or family syntax here – the estimator and family codes stand for it, and `run_spec()` expands them into the real fit.
 :::
 
 ```{r}
@@ -330,7 +331,7 @@ run_spec(my_model)
 
 Read the output like an analyst, looking at the coefficient and at its claim-aligned partial *r*, the correlation between predictor and outcome once the rest of the model is taken into account. A partial *r* below zero supports the claim. The five Multi100 analysts run from about the 16th percentile of the specification curve (the most strongly claim-supporting) to about the 68th (near the null), and your result is about to join theirs on the class chart.
 
-Now submit it to the class chart. There is nothing to fill in and nothing to transcribe – `report_result()` refits your declared specification, builds the spec label, and always submits on the claim-aligned scale that the chart is drawn on. It prints your submission line and a pre-filled form link; open it and press **Send**. Your dot appears on the live [Multiverse](https://codemoreh.github.io/applied-replication/results.html) chart within seconds, this time labelled **declared** rather than exploratory.
+Now submit it to the class chart. There is nothing to fill in and nothing to transcribe – `report_result()` refits your preregistered specification, builds the spec label, and always submits on the claim-aligned scale that the chart is drawn on. It prints your submission line and a pre-filled form link; open it and press **Send**. Your dot appears on the live [Multiverse](https://codemoreh.github.io/applied-replication/results.html) chart within seconds, this time labelled **declared** rather than exploratory.
 
 ```{r}
 #| label: report
@@ -339,7 +340,7 @@ report_result()
 
 If the form will not open on your machine, read the printed numbers to the facilitator and your dot will still be added.
 
-**A second declared specification?** Edit the preregistration cell, rerun `prereg()`, rebuild, rerun. The mechanics allow it, and the label does not change – so be clear with yourself about what the second one is. Your first declaration was made without knowing its result. Anything after it was not, which puts it back in the same category as Task 4, and you should say so when you report it.
+**A second declared specification?** Edit the preregistration cell, rerun `prereg()`, rebuild, rerun. The mechanics allow it, and the label does not change – so be clear with yourself about what the second one is. Your first preregistration was made without knowing its result. Anything after it was not, which puts it back in the same category as Task 4, and you should say so when you report it.
 
 ------------------------------------------------------------------------
 
