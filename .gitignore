@@ -21,3 +21,6 @@ CLAUDE.md
 #   /data/     – the CSVs are committed so the report renders offline.
 
 **/*.quarto_ipynb
+
+# The class-chart tag of this copy of the workspace (written by R/spec_tools.R)
+.class-tag

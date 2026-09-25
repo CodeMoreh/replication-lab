@@ -370,12 +370,13 @@ my_experiments <- function() {
   invisible(show)
 }
 
-submit_exploration <- function() {
+submit_exploration <- function(nickname = NULL) {
   if (is.null(.tried$last))
     stop("Nothing to submit – call try_spec() first, ending with the specification you want on the chart.",
          call. = FALSE)
   .submit(.tried$last$ch, .tried$last$fit, "explore",
-          "Your exploratory submission (claim-aligned, the last specification you tried):")
+          "Your exploratory submission (claim-aligned, the last specification you tried):",
+          nickname)
 }
 
 # --- Task 5: the preregistration helpers -----------------------------------
@@ -461,14 +462,71 @@ run_spec <- function(spec) {
   invisible(list(b = b, se = fit$se, stat = tv, df = fit$df, n = fit$n, r = fl * fit$r))
 }
 
-# One submission, used by both phases. The phase is prefixed to the free-text
-# spec label, and all fourteen decisions are written into that label. The
-# form, its fields and the collection pipeline are frozen infrastructure and
-# do not change.
-.submit <- function(ch, fit, phase, lead) {
+# --- Submission tags --------------------------------------------------------
+# Both submissions of a participant carry one short tag inside the spec label,
+# "explore: [amber-otter-42] …", so that the participant can find their own
+# circles on the class chart. The tag rides in the free-text label because the
+# form and its fields are frozen infrastructure. It is drawn once and kept in
+# .class-tag at the root of the workspace, so the explored and the declared
+# submission share it across sessions; a nickname passed to either submission
+# function replaces it. Base R throughout, as in the rest of this file.
+.tag_words <- list(
+  adj  = c("amber", "azure", "bright", "calm", "coral", "crisp", "dusky", "early",
+           "fair", "gentle", "golden", "hazel", "ivory", "jade", "keen", "lively",
+           "lunar", "misty", "noble", "olive", "pale", "quiet", "rapid", "rosy",
+           "russet", "silver", "snowy", "solar", "sunny", "swift", "velvet", "vivid"),
+  noun = c("otter", "heron", "lynx", "badger", "finch", "hare", "ibex", "kestrel",
+           "lark", "marten", "newt", "owl", "puffin", "quail", "raven", "seal",
+           "stoat", "tern", "vole", "wren", "bison", "crane", "dove", "egret",
+           "fox", "gecko", "koala", "lemur", "moose", "panda", "robin", "swan")
+)
+.tag_file <- ".class-tag"
+
+# A fresh tag, drawn without touching the random-number stream of the session,
+# so that a participant's set.seed() keeps reproducing the same draws.
+.new_tag <- function() {
+  had_seed <- exists(".Random.seed", envir = globalenv(), inherits = FALSE)
+  if (had_seed) old_seed <- get(".Random.seed", envir = globalenv())
+  on.exit(if (had_seed) assign(".Random.seed", old_seed, envir = globalenv())
+          else rm(".Random.seed", envir = globalenv()))
+  set.seed(as.integer((as.numeric(Sys.time()) * 1000) %% 1e9) + Sys.getpid() %% 1e5)
+  paste(sample(.tag_words$adj, 1), sample(.tag_words$noun, 1), sample(10:99, 1), sep = "-")
+}
+
+# A nickname reduced to lower-case ASCII letters, digits and single hyphens,
+# at most 24 characters – the only form that the class chart parses.
+.clean_tag <- function(x) {
+  # iconv on Windows turns these into "?": the Romanian comma-below letters and the eszett
+  x <- gsub("ß", "ss", chartr("ȘșȚț", "SsTt", trimws(as.character(x)[1])))
+  ascii <- suppressWarnings(iconv(x, to = "ASCII//TRANSLIT"))
+  if (!is.na(ascii)) x <- ascii
+  x <- gsub("^-+|-+$", "", gsub("[^a-z0-9]+", "-", tolower(x)))
+  x <- gsub("-+$", "", substr(x, 1, 24))
+  if (is.na(x) || !nzchar(x))
+    stop("A nickname needs at least one letter or digit, for example nickname = \"blue-heron\".",
+         call. = FALSE)
+  x
+}
+
+# The tag of this workspace: the nickname if one is given, otherwise the stored
+# tag, otherwise a fresh one. Returns the tag and the one it replaced, if any.
+.class_tag <- function(nickname = NULL) {
+  stored <- if (file.exists(.tag_file))
+    tryCatch(.clean_tag(readLines(.tag_file, warn = FALSE)[1]), error = function(e) NULL)
+  tag <- if (!is.null(nickname)) .clean_tag(nickname) else if (!is.null(stored)) stored else .new_tag()
+  if (!identical(tag, stored)) writeLines(tag, .tag_file)
+  list(tag = tag, replaced = if (!is.null(stored) && !identical(tag, stored)) stored)
+}
+
+# One submission, used by both phases. The phase and the tag are prefixed to
+# the free-text spec label, and all fourteen decisions are written into that
+# label. The form, its fields and the collection pipeline are frozen
+# infrastructure and do not change.
+.submit <- function(ch, fit, phase, lead, nickname = NULL) {
   fl <- .flip(ch)
   b <- fl * fit$estimate; tv <- fl * fit$statistic; r <- fl * fit$r
-  spec_label <- paste0(phase, ": ", .spec_line(ch))
+  tg <- .class_tag(nickname)
+  spec_label <- paste0(phase, ": [", tg$tag, "] ", .spec_line(ch))
 
   FORM_ID <- "1FAIpQLSezoAEOnZUfP4pkfN28_XtEBwSyc2RLsXB-h8RPSegF7_t76A"
   field <- c(spec = "entry.832496914", b = "entry.1656311800", se = "entry.1337458262",
@@ -489,14 +547,21 @@ run_spec <- function(spec) {
               b, fit$se, if (ch$my_family == "beta") "z" else "t", tv, round(fit$df), fit$n, r))
   cat("Open the link below (or copy the URL) – the form opens with every field\n")
   cat("pre-filled; just press Send.\n\n")
-  cat(url, "\n")
-  invisible(list(spec = spec_label, b = b, se = fit$se, statistic = tv,
+  cat(url, "\n\n")
+  cat(sprintf("Your circles on the class chart carry the tag %s%s.\n", tg$tag,
+              if (!is.null(tg$replaced)) sprintf(" (it replaces %s)", tg$replaced) else ""))
+  cat("Type it into the my_tag line of the live cell on the Multiverse page to\n")
+  cat("highlight them. Both of your submissions share it. To choose your own, pass\n")
+  cat("nickname = \"...\" – pick a nickname rather than your name, because the chart\n")
+  cat("is public.\n")
+  invisible(list(spec = spec_label, tag = tg$tag, b = b, se = fit$se, statistic = tv,
                  df = fit$df, n = fit$n, r = r, url = url))
 }
 
-report_result <- function() {
+report_result <- function(nickname = NULL) {
   ch  <- .check_choices()
   fit <- .fit_spec(ch)
   .submit(ch, fit, "declared",
-          "Your declared submission (claim-aligned, straight from your preregistration):")
+          "Your declared submission (claim-aligned, straight from your preregistration):",
+          nickname)
 }

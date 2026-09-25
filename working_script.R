@@ -63,6 +63,8 @@ tidy(m1)
 # The specification that you submit with submit_exploration() at the end of
 # this task is labelled exploratory on the class chart. The one labelled
 # declared is fixed later, in the Task 5 preregistration, before it is fitted.
+# Both carry the tag that submit_exploration() prints and keeps in .class-tag;
+# submit_exploration(nickname = "...") sets your own (a nickname, not your name).
 # try_spec() takes one argument per axis of the fourteen-axis menu, and every
 # one defaults to the baseline that you have just reproduced, so changing one
 # thing means changing one argument.
@@ -135,7 +137,8 @@ my_model <- build_model(mcosmo ~ unemp, estimator = "fe_twoway")
 run_spec(my_model)
 
 
-# report_result() takes no arguments and works from the preregistration. It
+# report_result() needs no arguments, works from the preregistration and reuses
+# the tag from Task 4. It
 # refits the model, builds the spec label, and always submits on the
 # claim-aligned scale on which the chart is drawn. Open the printed link and
 # press Send.

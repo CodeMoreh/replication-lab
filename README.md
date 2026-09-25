@@ -65,7 +65,7 @@ The tasks in `index.qmd` map to the day's learning objectives:
 - **Reproduce the recorded result.** Fit the two-way fixed-effects model on the panel and confirm **t = −3.804**, the value recorded for analyst C6HJR in the Multi100 dataset. *(Task 3)*
 - **Work the specification menu.** Fit alternative specifications with `try_spec()`, compare them, and submit the one you would defend to the class chart with `submit_exploration()`, where it is labelled exploratory. *(Task 4)*
 - **Preregister, then build and run.** Complete the preregistration block, then translate it into a real fit and read the claim-aligned result. *(Task 5)*
-- **Locate yourself in the multiverse.** Submit your result with `report_result()` and find your dot among the others on the class chart. *(Task 5, continued)*
+- **Locate yourself in the multiverse.** Submit your result with `report_result()` and find your circles among the others on the class chart by the tag that both submission functions print. *(Task 5, continued)*
 - **Go further.** Sweep a whole axis, test the mirror-image expectation, use GDP growth as the predictor, or read the full SCORE dossier. *(Going further)*
 
 ------------------------------------------------------------------------
