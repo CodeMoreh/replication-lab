@@ -50,7 +50,7 @@ jobs:
         with:
           # No DESCRIPTION file in this template, so list the packages explicitly.
           packages: >
-            dplyr, readr, ggplot2, broom, fixest, plm,
+            dplyr, readr, ggplot2, broom, fixest,
             dagitty, ggdag, modelsummary, osfr
 
       - name: Render the Quarto site

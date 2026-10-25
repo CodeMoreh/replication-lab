@@ -1,25 +1,28 @@
-# ########################################################################### #
+##############################################################################
 # Title:        check_setup.R – does this machine have what the course needs?
 # Purpose:      Report R version, Quarto, the required packages, and whether the
 #               workspace data files are present and readable. Prints an
 #               [OK] / [FAIL] / [SKIP] line per check and a verdict. It only
-#               checks, and changes nothing on your system.
-# Sourced by:   the participant, before the session (source("R/check_setup.R"))
+#               checks, and changes nothing on your system. Base R throughout,
+#               because it has to run before any package is installed.
 # Author:       Chris Moreh
-# Last updated: 2026-09-08
-# ########################################################################### #
+# Last updated: 2026-10-25
+# Sourced by:   the participant, before the session (source("R/check_setup.R"))
+##############################################################################
 
 # A FAIL is not the end of the world: the browser lab on the course site runs
 # the same exercise inside a web browser. The message at the bottom says what
 # to do.
 
 # --- tiny reporting helpers -------------------------------------------------
-.results <- new.env()
-.results$pass <- 0L; .results$fail <- 0L; .results$skip <- 0L
-
-ok   <- function(msg) { .results$pass <- .results$pass + 1L; cat("[OK]   ", msg, "\n", sep = "") }
-fail <- function(msg) { .results$fail <- .results$fail + 1L; cat("[FAIL] ", msg, "\n", sep = "") }
-skip <- function(msg) { .results$skip <- .results$skip + 1L; cat("[SKIP] ", msg, "\n", sep = "") }
+.results <- list2env(list(pass = 0L, fail = 0L, skip = 0L))
+.tally <- function(kind, label, msg) {
+  assign(kind, get(kind, envir = .results) + 1L, envir = .results)
+  writeLines(paste0(label, msg))
+}
+ok   <- function(msg) .tally("pass", "[OK]   ", msg)
+fail <- function(msg) .tally("fail", "[FAIL] ", msg)
+skip <- function(msg) .tally("skip", "[SKIP] ", msg)
 
 # Run a system command quietly and return its trimmed stdout, or "" on failure.
 sys_out <- function(cmd, args) {
@@ -30,7 +33,7 @@ sys_out <- function(cmd, args) {
   if (length(out) == 0) "" else trimws(paste(out, collapse = " "))
 }
 
-cat("\n=== Replication lab – setup check ===\n\n")
+writeLines("\n=== Replication lab – setup check ===\n")
 
 # --- 1. R version -----------------------------------------------------------
 if (getRversion() >= "4.4.0") {
@@ -48,37 +51,38 @@ if (nzchar(qv) && !grepl("not found|error", qv, ignore.case = TRUE)) {
 }
 
 # --- 3. packages ------------------------------------------------------------
-# The gaussian options on the menu need fixest and plm, and the beta family
-# adds betareg (fixed-effects and pooled designs), glmmTMB (random effects) and
-# sandwich (the cluster-robust pooled beta). All are checked so that any menu
-# choice runs. Quarto runs the R chunks of the report through rmarkdown, so a
-# fresh R installation without it renders nothing.
-needed <- c("dplyr", "readr", "ggplot2", "broom", "fixest", "plm",
-            "dagitty", "ggdag", "modelsummary", "osfr", "betareg",
-            "glmmTMB", "sandwich", "rmarkdown")
-missing <- needed[!vapply(needed, requireNamespace, logical(1), quietly = TRUE)]
+# Every specification on the curve is fitted with fixest, and its bootstrap
+# runs in base R (R/_wild_bootstrap.R). Quarto runs the R chunks of the report
+# through rmarkdown, so a fresh R installation without it renders nothing.
+needed <- c("dplyr", "readr", "ggplot2", "broom", "fixest",
+            "dagitty", "ggdag", "modelsummary", "osfr", "rmarkdown")
+missing <- needed[!vapply(needed, requireNamespace, logical(1), quietly = TRUE)] # r-style: keep – purrr may not be installed yet
 if (length(missing) == 0) {
   ok(paste0("all ", length(needed), " required packages installed"))
 } else {
   fail(paste0("missing package(s): ", paste(missing, collapse = ", ")))
-  cat('        install the missing ones with:\n')
-  cat('          install.packages("pak"); pak::pak(c("',
-      paste(missing, collapse = '", "'), '"))\n', sep = "")
+  writeLines(c("        install the missing ones with:",
+               paste0('          install.packages("pak"); pak::pak(c("', # r-style: keep – the instruction printed for a machine without pak
+                      paste(missing, collapse = '", "'), '"))')))
 }
 
 # --- 4. data files present and readable -------------------------------------
 # The report renders offline because these ship inside the workspace. The loop
-# confirms that they are here and that each reads as a country-year panel.
-# EUframes_cy.csv is the panel on which every task is fitted. rep_data.csv is
-# the as-submitted Multi100 artefact, kept alongside it as provenance and used
-# by no task.
-data_files <- c("data/EUframes_cy.csv", "data/rep_data.csv")
-for (f in data_files) {
+# confirms that they are here and that each can be read. EUframes_cy.csv is the
+# panel on which every task is fitted. The next four are what R/spec_tools.R
+# reads: the measurement variants of the panel, the published predictor series,
+# the curve of 864 specifications and the reasons for the options that are not
+# on it. rep_data.csv is the as-submitted Multi100 artefact, kept as provenance
+# and used by no task.
+data_files <- c("data/EUframes_cy.csv", "data/teney_panel_measurement.csv",
+                "data/predictor_measures.csv", "data/spec_curve.csv",
+                "data/menu_options.csv", "data/rep_data.csv")
+for (f in data_files) { # r-style: keep – each pass prints one check line
   if (!file.exists(f)) {
     fail(paste0("data file missing: ", f, " – run from the workspace root folder"))
     next
   }
-  n_rows <- tryCatch(nrow(utils::read.csv(f)), error = function(e) NA_integer_)
+  n_rows <- tryCatch(nrow(utils::read.csv(f)), error = function(e) NA_integer_) # r-style: keep – readr may not be installed yet
   if (is.na(n_rows)) {
     fail(paste0("could not read ", f))
   } else {
@@ -102,18 +106,16 @@ if (file.exists("index.qmd")) {
 }
 
 # --- verdict ----------------------------------------------------------------
-cat("\n=== Verdict ===\n")
-cat(sprintf("  %d OK   %d FAIL   %d SKIP\n",
-            .results$pass, .results$fail, .results$skip))
+writeLines(c("\n=== Verdict ===",
+             sprintf("  %d OK   %d FAIL   %d SKIP", .results$pass, .results$fail, .results$skip)))
 
 if (.results$fail == 0) {
-  cat("\nYou are ready. Open index.qmd and run `quarto preview` in the terminal.\n")
+  writeLines("\nYou are ready. Open index.qmd and run `quarto preview` in the terminal.\n")
 } else {
-  cat("\nSome checks failed. Two options:\n",
-      " 1. Fix the FAILs above (each line says how), then re-run this script.\n",
-      "    The help page on the course site lists the common failures and fixes.\n",
-      " 2. Come anyway – the browser lab runs the same exercise inside a web\n",
-      "    browser, and you can work through the rest on a partner's laptop.\n",
-      sep = "")
+  writeLines(c("\nSome checks failed. Two options:",
+               " 1. Fix the FAILs above (each line says how), then re-run this script.",
+               "    The help page on the course site lists the common failures and fixes.",
+               " 2. Come anyway – the browser lab runs the same exercise inside a web",
+               "    browser, and you can work through the rest on a partner's laptop.",
+               ""))
 }
-cat("\n")

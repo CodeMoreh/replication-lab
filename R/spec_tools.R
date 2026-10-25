@@ -1,148 +1,193 @@
-# ########################################################################### #
+##############################################################################
 # Title:        spec_tools.R – explore, preregister, fit and report
-# Purpose:      The fourteen-decision specification menu, its validation, and
-#               the helpers that the report and the working script use, in two
-#               groups.
+# Purpose:      The specification menu, its validation, and the helpers that
+#               the report and the working script use, in two groups.
 #
-#               EXPLORATORY (Task 4), where every choice stays open: try_spec()
-#               fits any specification from arguments that default to the
-#               reproduced baseline, my_experiments() prints the running log,
-#               and submit_exploration() sends the last one to the class chart.
+#               EXPLORATORY (Task 4): try_spec() fits any specification on the
+#               curve from arguments that default to the reproduced one,
+#               my_experiments() prints the running log, and
+#               submit_exploration() sends the last one to the class chart.
 #
 #               DECLARED (Task 5), where one specification is fixed in the
 #               preregistration block before it is fitted: prereg() checks it
 #               against the menu and prints it, build_model() checks a
-#               hand-written formula against it, run_spec() fits the real
-#               model, report_result() submits it.
+#               hand-written formula against it, run_spec() fits it,
+#               report_result() submits it.
 #
-#               Every fit is a live estimation. The seven Level 1 decisions fix
-#               the question, and one of them, the scoring rule, also sets how
-#               the outcome is built from the items. The Level 2 decisions
-#               select which version of the country-year panel is fitted (what
-#               was done with respondents who mentioned nothing,
-#               whether the "unemployment" item is in, whether cells are
-#               design-weighted, and which published series supplies the
-#               predictor), and the Level 3 decisions fix how the model is
-#               estimated. The one exception is the multiple-imputation option
-#               of the no-opinion axis, which needs the respondent-level file
-#               that the GESIS licence does not allow to be redistributed. Its
-#               pooled results are read from data/spec_grid_mi.csv, and the
-#               printout names that source.
-# Reads:        the `euframes` object in the calling environment (the base
-#               country-year panel), data/teney_panel_measurement.csv,
-#               data/teney_panel_weights.csv, data/predictor_measures.csv,
-#               data/spec_grid_mi.csv
-# Sourced by:   index.qmd and working_script.R (source("R/spec_tools.R"))
+#               The menu has fourteen decisions, and the curve of the claim
+#               keeps 864 specifications of them. An option that is not on the
+#               curve stops with the reason recorded in data/menu_options.csv
+#               and the page of the course site that teaches it. Every
+#               specification on the curve is a live fit on the country-year
+#               panel that its measurement choices select, tested by the
+#               restricted wild cluster bootstrap by country of
+#               R/_wild_bootstrap.R, a verbatim copy of the file that classes
+#               the curve, so that it returns the stored p-value exactly. The
+#               CR2 p-value and the placement among the 864 are read from
+#               data/spec_curve.csv, so that CR2 needs no further package.
+#               Base R, dplyr and readr only, all already required by the
+#               report. Through it the report reads data/EUframes_cy.csv,
+#               data/teney_panel_measurement.csv, data/predictor_measures.csv,
+#               data/spec_curve.csv and data/menu_options.csv.
 # Author:       Chris Moreh
-# Last updated: 2026-09-06
-# ########################################################################### #
+# Last updated: 2026-10-25
+# Sourced by:   index.qmd and working_script.R (source("R/spec_tools.R"))
+##############################################################################
 
+.wcr <- new.env()
+sys.source("R/_wild_bootstrap.R", envir = .wcr)
+.course_url <- "https://codemoreh.github.io/applied-replication"
+
+# The thirteen axis codes that key the curve, in its column order; the
+# inference rule is the fourteenth decision and is the same for every row.
+.axis_codes <- c("outcome", "predictor", "copredictor", "estimator", "sample", "weights",
+                 "construction", "noop", "item_set", "cell_weight", "measure", "pred_form",
+                 "family")
 .neg_framings <- c("mcomm", "mlib", "mneg")
-.outcomes     <- c("mcosmo", "mutil", "mcomm", "mlib", "mpos", "mneg")
-# items in each set, for the per-item rate: all 13 items, or without the
-# "unemployment" item, which leaves the communitarian set with three
-.k_items <- list(all = c(mcosmo = 5, mutil = 2, mcomm = 4, mlib = 2, mpos = 7, mneg = 6),
-                 un  = c(mcosmo = 5, mutil = 2, mcomm = 3, mlib = 2, mpos = 7, mneg = 5))
 
-# The menu, in the three levels used throughout the course. Level 1 changes
-# the question, Level 2 the measurement, Level 3 the estimation. The scoring
-# rule is a Level 1 decision: a share of a respondent's own mentions and a
-# count of the items in the set are different quantities, and the per-item
-# rate is the count divided by the number of items in the set.
+# The options that the curve keeps, grouped as the course groups the menu.
+# Level 1 changes the question, Level 2 the measurement, Level 3 the
+# estimation. Every other option of the menu is listed in menu_options.csv.
 .menu <- list(
   # Level 1 – Estimands
-  my_outcome      = .outcomes,
+  my_outcome      = c("mcosmo", "mutil", "mpos"),
   my_predictor    = c("unemp", "growth"),
   my_copredictor  = c("none", "other"),
-  my_estimator    = c("fe_twoway", "fe_country", "re", "pooled_cl"),
-  my_sample       = c("all", "y2004_2008", "y2009_2013", "no_bailout", "no_GR_ES"),
-  my_weights      = c("none", "n_cell", "n_eff", "pop"),
-  my_construction = c("share", "count", "rate"),
+  my_estimator    = c("fe_twoway", "fe_country"),
+  my_sample       = "all",
+  my_weights      = "none",
+  my_construction = "share",
   # Level 2 – Measurement
-  my_noop         = c("zero", "drop", "split", "mi_mice", "mi_amelia"),
+  my_noop         = c("zero", "drop"),
   my_item_set     = c("all", "un"),
   my_cell_weight  = c("unweighted", "design"),
-  my_measure      = c("wb_nat", "es_1574_act", "es_2064_pop", "es_2564_lfs", "es_1574_tips",
-                      "wb_growth", "es_growth"),
+  my_measure      = c("wb_nat", "es_1574_act", "es_2064_pop", "es_2564_lfs", "wb_growth"),
   # Level 3 – Estimation
   my_pred_form    = c("raw", "log"),
-  my_family       = c("gaussian", "beta"),
-  my_se           = c("conventional", "clustered")
+  my_family       = "gaussian",
+  my_se           = "wcr"
 )
-.level <- c(rep("estimand", 7), rep("measurement", 4), rep("estimation", 3))
-names(.level) <- names(.menu)
-
-.measures_for <- list(unemp  = c("wb_nat", "es_1574_act", "es_2064_pop", "es_2564_lfs", "es_1574_tips"),
-                      growth = c("wb_growth", "es_growth"))
-
-# the measurement settings at which the beta family and the imputed variants
-# were pre-computed; anything else on those two options is not in the universe
-.canonical_measurement <- function(ch)
-  ch$my_construction %in% c("share", "rate") && ch$my_noop %in% c("zero", "mi_mice", "mi_amelia") &&
-  ch$my_item_set == "all" && ch$my_cell_weight == "unweighted" &&
-  ch$my_measure %in% c("wb_nat", "wb_growth")
+.measures_for <- list(unemp  = c("wb_nat", "es_1574_act", "es_2064_pop", "es_2564_lfs"),
+                      growth = "wb_growth")
 
 .est_lab <- function(e) c(
   fe_twoway  = "two-way fixed effects (country + year)",
-  fe_country = "country fixed effects",
-  re         = "random effects",
-  pooled_cl  = "pooled OLS")[[e]]
+  fe_country = "country fixed effects")[[e]]
+.se_lab <- "wild cluster bootstrap by country"
 
 # The term for the predictor that the claim is about, as it appears in a
-# formula and in the fitted coefficient table: log(unemp) when the log form is
-# chosen, else the bare variable name.
+# formula: log(unemp) when the log form is chosen, else the bare variable name.
 .main_term <- function(ch) {
   if (ch$my_predictor == "unemp" && ch$my_pred_form == "log") "log(unemp)"
   else ch$my_predictor
 }
-.copred_term <- function(ch) if (ch$my_predictor == "unemp") "growth" else "unemp"
+.copred_term <- function(ch) if (identical(ch$my_predictor, "unemp")) "growth" else "unemp"
 
-# --- validation ------------------------------------------------------------
+# --- the shipped files -------------------------------------------------------
+# Each file is read once and cached.
+.cache <- new.env(parent = emptyenv())
+.read_once <- function(name, path) {
+  if (is.null(.cache[[name]])) {
+    if (!file.exists(path))
+      stop(sprintf("%s is missing – the workspace ships it under data/. Run from the workspace root folder.",
+                   path), call. = FALSE)
+    assign(name, readr::read_csv(path, show_col_types = FALSE, progress = FALSE), envir = .cache)
+  }
+  .cache[[name]]
+}
+.curve   <- function() .read_once("curve", "data/spec_curve.csv")
+.options <- function() .read_once("options", "data/menu_options.csv")
+
+# the sign matrix of the bootstrap, drawn once from its fixed seed
+.signs <- function() {
+  if (is.null(.cache$signs)) assign("signs", .wcr$wcr_signs("rademacher"), envir = .cache)
+  .cache$signs
+}
+
+# --- validation --------------------------------------------------------------
 # Two entry points into the same rules. .validate() takes a named list, which
 # is how the exploratory try_spec() supplies its arguments; .check_choices()
 # reads the fourteen my_* choices and claim_align out of the calling
 # environment, which is how the declared flow reads the preregistration block.
+# An option that is not on the curve stops with the reason from
+# menu_options.csv, the page of the course that teaches it, and the options
+# that stay on the curve.
+.page_titles <- c(
+  "companion/measurement.qmd"   = "The items behind the scales",
+  "companion/stats-methods.qmd" = "The statistical methods behind the course",
+  "companion/dags.qmd"          = "Causal graphs",
+  "companion/multiverse.qmd"    = "The multiverse and its critics",
+  "companion/weighting.qmd"     = "Weights",
+  "companion/missingness.qmd"   = "Missing answers",
+  "companion/data-sources.qmd"  = "Social science data sources",
+  "results.qmd"                 = "Multiverse",
+  "exercise/estimand-dial.qmd"  = "Decision map")
+.page_ref <- function(path) {
+  title <- if (path %in% names(.page_titles)) .page_titles[[path]] else path
+  sprintf("%s, %s/%s", title, .course_url, sub("\\.qmd$", ".html", path))
+}
+.or_list <- function(x) {
+  q <- paste0("\"", x, "\"")
+  if (length(q) == 1) q else paste(paste(q[-length(q)], collapse = ", "), "or", q[length(q)])
+}
+# the earlier menu spelled two options differently; their reasons still apply
+.legacy <- c("se:clustered" = "cr1", "weights:n_cy" = "n_cell")
+
+.on_menu <- function(k, v) is.character(v) && length(v) == 1 && !is.na(v) && v %in% .menu[[k]]
+
+.refuse <- function(k, v, ch, as_args) {
+  shown <- function(a) if (as_args) a else paste0("my_", a)
+  axis  <- sub("^my_", "", k)
+  keep  <- if (k == "my_measure" && isTRUE(ch$my_predictor %in% names(.measures_for)))
+    .measures_for[[ch$my_predictor]] else .menu[[k]]
+  map   <- paste0("  Every decision and its options: ", .page_ref("exercise/estimand-dial.qmd"))
+  if (!is.character(v) || length(v) != 1 || is.na(v))
+    stop(sprintf("%s needs one option in quotes, for example %s = \"%s\".",
+                 shown(axis), shown(axis), .menu[[k]][1]), call. = FALSE)
+  look <- if (paste0(axis, ":", v) %in% names(.legacy)) .legacy[[paste0(axis, ":", v)]] else v
+  opts <- .options()
+  row  <- dplyr::filter(opts, .data$axis == .env$axis, .data$option == look, !.data$on_curve)
+  off  <- dplyr::filter(opts, .data$axis == .env$axis, !.data$on_curve)$option
+  msg <- if (nrow(row) == 1) c(
+    sprintf("%s = \"%s\" (%s) is not on the curve of 864 specifications, so it has no result here.",
+            shown(axis), v, row$label),
+    paste0("  Why: ", row$reason),
+    if (axis == "se")
+      "  Inference is fixed: every result on the curve is tested by the wild cluster bootstrap by country, and the printout gives the conventional t and the CR2 p beside it.",
+    paste0("  Where it is taught: ", .page_ref(row$taught_on)),
+    map,
+    sprintf("  To stay on the curve, choose %s = %s.", shown(axis), .or_list(keep))
+  ) else c(
+    sprintf("%s = \"%s\" is not an option on the menu.", shown(axis), v),
+    sprintf("  On the curve: %s.", paste(.menu[[k]], collapse = " | ")),
+    if (length(off) > 0)
+      sprintf("  Off the curve, refused with the reason why: %s.", paste(off, collapse = " | ")),
+    map
+  )
+  stop(paste(msg, collapse = "\n"), call. = FALSE)
+}
+
 .validate <- function(ch, as_args = FALSE) {
-  # the co-predictor may also be named by its variable (growth or unemp), and
-  # the weight code n_cy is read as n_cell, the respondent count
-  if (identical(ch$my_copredictor, .copred_term(ch))) ch$my_copredictor <- "other"
-  if (identical(ch$my_weights, "n_cy")) ch$my_weights <- "n_cell"
-  for (k in names(.menu)) {
-    v <- ch[[k]]
-    shown <- if (as_args) sub("^my_", "", k) else k
-    if (is.null(v) || !is.character(v) || length(v) != 1 || !v %in% .menu[[k]])
-      stop(sprintf("%s = \"%s\" is not on the menu. Options: %s.",
-                   shown, paste(v, collapse = ","),
-                   paste(.menu[[k]], collapse = " | ")), call. = FALSE)
-  }
-  if (ch$my_estimator == "re" && ch$my_weights != "none")
-    stop("The random-effects estimator is never fitted with weights. Use weights = \"none\" or pick another estimator.",
-         call. = FALSE)
+  shown <- function(a) if (as_args) a else paste0("my_", a)
+  # the co-predictor may also be named by its variable, growth or unemp
+  if (identical(ch$my_copredictor, .copred_term(ch)))
+    ch <- utils::modifyList(ch, list(my_copredictor = "other"))
+  bad <- Filter(\(k) !.on_menu(k, ch[[k]]), names(.menu))
+  if (length(bad) > 0) .refuse(bad[1], ch[[bad[1]]], ch, as_args)
   if (ch$my_predictor == "growth" && ch$my_pred_form == "log")
-    stop("GDP growth enters raw only – it takes negative values, so the log is undefined. Use pred_form = \"raw\".",
-         call. = FALSE)
+    stop(sprintf("GDP growth enters raw only – it takes negative values, so its log is undefined. Use %s = \"raw\".",
+                 shown("pred_form")), call. = FALSE)
   if (!ch$my_measure %in% .measures_for[[ch$my_predictor]])
-    stop(sprintf("measure = \"%s\" is a series for %s; with predictor = \"%s\" choose one of: %s.",
-                 ch$my_measure, setdiff(names(.measures_for), ch$my_predictor), ch$my_predictor,
-                 paste(.measures_for[[ch$my_predictor]], collapse = " | ")), call. = FALSE)
-  if (ch$my_family == "beta" && !.canonical_measurement(ch))
-    stop("The beta family is fitted only with the measurement held fixed: construction = \"share\" or \"rate\" (a count is not a proportion), noop = \"zero\", item_set = \"all\", cell_weight = \"unweighted\", measure = the World Bank series.",
-         call. = FALSE)
-  if (ch$my_family == "beta" && ch$my_estimator == "re" && ch$my_se == "clustered")
-    stop("Clustered errors are not available for the beta random-effects fit. Use se = \"conventional\" with that pairing.",
-         call. = FALSE)
-  if (ch$my_noop %in% c("mi_mice", "mi_amelia") &&
-      !(ch$my_construction == "share" && ch$my_item_set == "all" &&
-        ch$my_cell_weight == "unweighted" && ch$my_measure == "wb_nat" &&
-        ch$my_predictor == "unemp" && ch$my_pred_form == "raw" && ch$my_family == "gaussian"))
-    stop("The imputed no-opinion options were pre-computed only for the unemployment arm, with the measurement and estimation held fixed (share, all items, unweighted cells, World Bank series, raw form, gaussian).",
-         call. = FALSE)
+    stop(sprintf("%s = \"%s\" is a series for %s; with %s = \"%s\" choose %s = %s.",
+                 shown("measure"), ch$my_measure, setdiff(names(.measures_for), ch$my_predictor),
+                 shown("predictor"), ch$my_predictor, shown("measure"),
+                 .or_list(.measures_for[[ch$my_predictor]])), call. = FALSE)
   ch
 }
 
 .check_choices <- function() {
   need <- names(.menu)
-  missing <- need[!vapply(need, exists, logical(1))]
+  missing <- Filter(Negate(exists), need)
   if (length(missing) > 0)
     stop("Not declared yet: ", paste(missing, collapse = ", "),
          ". Fill in every choice in the preregistration cell and run it first.",
@@ -150,160 +195,84 @@ names(.level) <- names(.menu)
   if (!exists("claim_align"))
     stop("Also declare claim_align <- TRUE (the course convention) in the preregistration cell.",
          call. = FALSE)
-  ch <- lapply(need, function(k) get(k))
-  names(ch) <- need
-  .validate(ch)
+  .validate(mget(need, inherits = TRUE))
 }
 
-# --- the data behind a specification ---------------------------------------
-# The base panel `euframes` supplies the cell identifiers, the bailout flag
-# and the World Bank series. The measurement panel supplies the outcome under
-# the chosen construction, item set, no-opinion rule and cell weighting, with
-# the cell counts that go with them. The predictor series file supplies the
-# chosen published series, and the weights panel the adult population. Each
-# file is read once and cached.
-.cache <- new.env(parent = emptyenv())
-.read_once <- function(name, path) {
-  if (is.null(.cache[[name]])) {
-    if (!file.exists(path))
-      stop(sprintf("%s is missing – the workspace ships it under data/.", path), call. = FALSE)
-    .cache[[name]] <- utils::read.csv(path, stringsAsFactors = FALSE)
-  }
-  .cache[[name]]
-}
-
+# --- the data behind a specification -----------------------------------------
+# The base panel supplies the cells and the World Bank series that the
+# adjustment uses. The measurement panel supplies the outcome under the chosen
+# item set, no-opinion rule and cell weighting, and the predictor series file
+# the chosen published series. The cells are sorted by country and year, as
+# in the build of the curve.
 .build_data <- function(ch) {
-  me <- .read_once("measurement", "data/teney_panel_measurement.csv")
-  pm <- .read_once("predictors",  "data/predictor_measures.csv")
-  wt <- .read_once("weights",     "data/teney_panel_weights.csv")
-  noop <- if (ch$my_noop %in% c("mi_mice", "mi_amelia")) "zero" else ch$my_noop
-  # the per-item rate is the count divided by the number of items in the set
-  cons <- if (ch$my_construction == "rate") "count" else ch$my_construction
-  v <- me[me$construction == cons & me$item_set == ch$my_item_set &
-          me$noop == noop & me$cell_weight == ch$my_cell_weight, ]
-  wide <- stats::reshape(v[, c("cntry", "year", "n_cell", "n_eff_cell", "outcome", "value")],
-                         idvar = c("cntry", "year", "n_cell", "n_eff_cell"),
-                         timevar = "outcome", direction = "wide")
-  names(wide) <- sub("^value\\.", "", names(wide))
-  if (ch$my_construction == "rate") {
-    k <- .k_items[[ch$my_item_set]]
-    for (o in names(k)) if (o %in% names(wide)) wide[[o]] <- wide[[o]] / k[[o]]
-  }
-  d <- merge(euframes[, c("cntry", "year", "bailout", "unemp", "growth", "n_cy")],
-             wide, by = c("cntry", "year"))
-  d <- merge(d, wt[, c("cntry", "year", "pop_15plus")], by = c("cntry", "year"), all.x = TRUE)
-  series <- pm[pm$measure == ch$my_measure, c("cntry", "year", "value")]
-  d <- merge(d, series, by = c("cntry", "year"))      # a short series shortens the panel
-  if (ch$my_predictor == "unemp") d$unemp <- d$value else d$growth <- d$value
-  d$value <- NULL
-  d <- switch(ch$my_sample,
-    all        = d,
-    y2004_2008 = d[d$year <= 2008, ],
-    y2009_2013 = d[d$year >= 2009, ],
-    no_bailout = d[!d$cntry %in% unique(d$cntry[d$bailout == 1]), ],
-    no_GR_ES   = d[!d$cntry %in% c("GR", "ES"), ])
-  d$w <- switch(ch$my_weights, none = rep(1, nrow(d)), n_cell = d$n_cell,
-                n_eff = d$n_eff_cell, pop = d$pop_15plus)
-  d
+  outcome <- .read_once("measurement", "data/teney_panel_measurement.csv") |>
+    dplyr::filter(.data$construction == ch$my_construction, .data$item_set == ch$my_item_set,
+                  .data$noop == ch$my_noop, .data$cell_weight == ch$my_cell_weight,
+                  .data$outcome == ch$my_outcome) |>
+    dplyr::select("cntry", "year", y = "value")
+  series <- .read_once("predictors", "data/predictor_measures.csv") |>
+    dplyr::filter(.data$measure == ch$my_measure) |>
+    dplyr::select("cntry", "year", pred = "value")
+  .read_once("panel", "data/EUframes_cy.csv") |>
+    dplyr::select("cntry", "year", wb_unemp = "unemp", wb_growth = "growth") |>
+    dplyr::inner_join(outcome, by = c("cntry", "year")) |>
+    dplyr::inner_join(series, by = c("cntry", "year")) |>
+    dplyr::mutate(x = if (ch$my_pred_form == "log") log(.data$pred) else .data$pred,
+                  copred = if (ch$my_predictor == "unemp") .data$wb_growth else .data$wb_unemp) |>
+    dplyr::arrange(.data$cntry, .data$year)
 }
 
-# The claim-alignment factor: negative framings are reverse-coded (1 - y), and
-# the claim-expected sign for growth is positive, so each flips the reported
-# sign. Reverse-coding is exact for both families (for beta,
-# logit(1 - mu) = -logit(mu)), so multiplying b, statistic and r by this factor
-# gives the claim-aligned numbers without refitting.
+# The claim-alignment factor. The claim expects framing to rise with growth,
+# so a growth slope is reported with its sign flipped; the negative framings,
+# which are not on the curve, were reverse-coded the same way. The r_ca column
+# of the curve is r times this factor.
 .flip <- function(ch)
   (if (ch$my_outcome %in% .neg_framings) -1 else 1) *
   (if (ch$my_predictor == "growth") -1 else 1)
 
-.need_pkg <- function(p)
-  if (!requireNamespace(p, quietly = TRUE))
-    stop(sprintf("This specification needs the '%s' package. Install it with pak::pak(\"%s\"), then rerun.", p, p),
-         call. = FALSE)
+.key_of <- function(ch) paste(unlist(ch[paste0("my_", .axis_codes)]), collapse = "|")
 
-# --- the live fit ----------------------------------------------------------
-# The gaussian family is fitted with fixest for the fixed-effects and pooled
-# designs and with plm for random effects. The beta family (logit link) is
-# fitted with betareg, using country and year dummies, and with glmmTMB for
-# random effects. Regression weights are normalised to the sample size for the
-# beta family, as case weights need to be. Either standard-error convention,
-# conventional or clustered by country, is applied to the same fit.
-.fit_spec <- function(ch) {
-  if (ch$my_noop %in% c("mi_mice", "mi_amelia")) return(.lookup_mi(ch))
+.curve_row <- function(ch) {
+  cv  <- .curve()
+  hit <- cv[match(.key_of(ch), do.call(paste, c(unname(as.list(cv[.axis_codes])), sep = "|"))), ]
+  if (is.na(hit$b))
+    stop("That specification passed the checks but is not among the 864 on the curve. This should not happen; check that data/spec_curve.csv is the copy that came with the workspace.",
+         call. = FALSE)
+  hit
+}
+
+# --- the live fit --------------------------------------------------------------
+# The conventional fit is fixest with country (and year) fixed effects; the
+# bootstrap takes the same model as a design matrix with the fixed effects as
+# dummies. The result has the form that the printout and the submission use:
+# the conventional fit (b, se, t, df, r), the claim-aligned r, the two
+# clustered tests, and the placement among the 864.
+.result <- function(ch) {
   d   <- .build_data(ch)
-  key <- .main_term(ch)
-  rhs <- c(key, if (ch$my_copredictor == "other") .copred_term(ch))
-  wts <- if (ch$my_weights == "none") NULL else d$w
-  clustered <- ch$my_se == "clustered"
-
-  if (ch$my_family == "gaussian") {
-    .need_pkg("fixest")
-    if (ch$my_estimator != "re") {
-      fe  <- switch(ch$my_estimator, fe_twoway = "| cntry + year", fe_country = "| cntry", pooled_cl = "")
-      fml <- stats::as.formula(paste(ch$my_outcome, "~", paste(rhs, collapse = " + "), fe))
-      m   <- fixest::feols(fml, data = d, weights = wts)
-      ct  <- fixest::coeftable(m, vcov = if (clustered) ~cntry else "iid")
-      out <- list(estimate = ct[key, "Estimate"], se = ct[key, "Std. Error"],
-                  statistic = ct[key, "t value"],
-                  df = fixest::degrees_freedom(m, type = "resid"), n = stats::nobs(m))
-    } else {
-      .need_pkg("plm")
-      fml <- stats::as.formula(paste(ch$my_outcome, "~", paste(rhs, collapse = " + ")))
-      m   <- plm::plm(fml, data = d, index = c("cntry", "year"), model = "random")
-      b   <- stats::coef(m)[[key]]
-      V   <- if (clustered) plm::vcovHC(m, method = "arellano", cluster = "group") else stats::vcov(m)
-      se  <- sqrt(diag(V))[[key]]
-      out <- list(estimate = b, se = se, statistic = b / se,
-                  df = nrow(d) - length(stats::coef(m)), n = nrow(d))
-    }
-  } else {
-    # as.numeric() because the population column is integer, and its product
-    # with the row count overflows the integer range of R for the large countries
-    wts_b <- if (is.null(wts)) NULL else as.numeric(wts) * nrow(d) / sum(as.numeric(wts))
-    if (ch$my_estimator == "re") {
-      .need_pkg("glmmTMB")
-      fml <- stats::as.formula(paste(ch$my_outcome, "~", paste(rhs, collapse = " + "), "+ (1 | cntry)"))
-      m   <- glmmTMB::glmmTMB(fml, data = d, family = glmmTMB::beta_family(), weights = wts_b)
-      ct  <- summary(m)$coefficients$cond
-      out <- list(estimate = ct[key, 1L], se = ct[key, 2L], statistic = ct[key, 3L],
-                  df = as.integer(stats::nobs(m) - nrow(ct)), n = as.integer(stats::nobs(m)))
-    } else {
-      .need_pkg("betareg")
-      dummies <- switch(ch$my_estimator, fe_twoway = "+ factor(cntry) + factor(year)",
-                        fe_country = "+ factor(cntry)", pooled_cl = "")
-      fml <- stats::as.formula(paste(ch$my_outcome, "~", paste(rhs, collapse = " + "), dummies))
-      m   <- betareg::betareg(fml, data = d, weights = wts_b, link = "logit")
-      ct  <- summary(m)$coefficients$mean
-      est <- ct[key, 1L]; se <- ct[key, 2L]
-      if (clustered) { .need_pkg("sandwich"); se <- sqrt(sandwich::vcovCL(m, cluster = d$cntry)[key, key]) }
-      out <- list(estimate = est, se = se, statistic = est / se,
-                  df = as.integer(stats::nobs(m) - nrow(ct)), n = as.integer(stats::nobs(m)))
-    }
-  }
-  out$r <- out$statistic / sqrt(out$statistic^2 + out$df)
-  out$source <- "fitted live"
-  out
+  rhs <- paste(c("x", if (ch$my_copredictor == "other") "copred"), collapse = " + ")
+  fe  <- c(fe_twoway = "cntry + year", fe_country = "cntry")[[ch$my_estimator]]
+  m   <- fixest::feols(stats::as.formula(paste("y ~", rhs, "|", fe)), data = d, vcov = "iid")
+  ct  <- fixest::coeftable(m)
+  t   <- ct["x", "t value"]
+  df  <- fixest::degrees_freedom(m, type = "resid")
+  dummies <- c(fe_twoway = "factor(cntry) + factor(year)", fe_country = "factor(cntry)")[[ch$my_estimator]]
+  X    <- stats::model.matrix(stats::as.formula(paste("y ~", rhs, "+", dummies)), data = d)
+  boot <- .wcr$wcr_test(d$y, X, d$cntry, .signs(), term = "x")
+  stored <- .curve_row(ch)
+  if (abs(t - stored$t) > 1e-8 || abs(boot[["p"]] - stored$p_wcr) > 1e-9)
+    warning(sprintf("The live fit (t = %.4f, bootstrap p = %.4f) differs from the curve shipped with the workspace (t = %.4f, p = %.4f). A file in data/ may have been edited; restore it from the course repository.",
+                    t, boot[["p"]], stored$t, stored$p_wcr), call. = FALSE)
+  r <- t / sqrt(t^2 + df)
+  list(b = ct["x", "Estimate"], se = ct["x", "Std. Error"], t = t, df = df, n = stats::nobs(m),
+       r = r, r_ca = .flip(ch) * r, p_cr2 = stored$p_cr2, p_wcr = boot[["p"]],
+       placement = mean(.curve()$r_ca < stored$r_ca),
+       source = "fitted live, with the bootstrap run here on 9,999 draws; the CR2 p is read from data/spec_curve.csv")
 }
 
-# The imputed variants cannot be fitted here: they need the respondent-level
-# file. Their pooled results (ten imputations, Rubin's rules) are read instead.
-.lookup_mi <- function(ch) {
-  mi <- .read_once("mi", "data/spec_grid_mi.csv")
-  engine <- if (ch$my_noop == "mi_mice") "mice_pmm" else "amelia_emb"
-  hit <- mi[mi$engine == engine & mi$outcome == ch$my_outcome &
-            mi$copredictor == ch$my_copredictor & mi$estimator == ch$my_estimator &
-            mi$sample == ch$my_sample & mi$reg_weight == ch$my_weights & mi$se == ch$my_se, ]
-  if (nrow(hit) != 1) stop("That imputed variant is not in the pre-computed results.", call. = FALSE)
-  if (is.na(hit$estimate) || is.na(hit$statistic))
-    stop("That imputed variant did not pool when the results were computed – choose the other engine or another no-opinion rule.",
-         call. = FALSE)
-  list(estimate = hit$estimate, se = hit$std_error, statistic = hit$statistic,
-       df = hit$df, n = hit$n, r = hit$r, source = "read from the pre-computed imputation results")
-}
-
+# --- the printout ----------------------------------------------------------------
 # The one-line spec label that is parsed for the class chart: six of the
 # Level 1 choices, then in brackets the scoring rule and the measurement and
-# estimation choices.
+# estimation choices, the inference rule last.
 .spec_line <- function(ch) {
   neg <- ch$my_outcome %in% .neg_framings
   paste0(ch$my_outcome, if (neg) "_ca" else "", " ~ ", ch$my_predictor, "(", ch$my_pred_form, ")",
@@ -313,60 +282,87 @@ names(.level) <- names(.menu)
          ch$my_cell_weight, ", ", ch$my_measure, " | ", ch$my_family, ", se:", ch$my_se, "]")
 }
 
-# --- Task 4: the exploratory helpers ---------------------------------------
+.fmt_p <- function(p) if (p < 0.001) "< 0.001" else sprintf("= %.3f", p)
+
+.class_line <- function(res) {
+  below <- res$r_ca < 0
+  sig   <- res$p_wcr < 0.05
+  if (below && sig) "below zero and significant under the bootstrap (p < 0.05), in the direction of the claim"
+  else if (below) "below zero, but not significant under the bootstrap (p >= 0.05)"
+  else if (sig) "above zero and significant under the bootstrap, against the direction of the claim"
+  else "above zero and not significant under the bootstrap"
+}
+
+.print_result <- function(ch, res, lead = NULL, aligned = TRUE) {
+  fl <- if (aligned) .flip(ch) else 1
+  writeLines(c(
+    lead,
+    paste0("  ", .spec_line(ch)),
+    sprintf("  b = %.5f   se = %.5f   t = %.3f on %d df (conventional standard error)",
+            fl * res$b, res$se, fl * res$t, round(res$df)),
+    sprintf("  partial r = %.3f, %s", if (aligned) res$r_ca else res$r,
+            if (aligned) "claim-aligned (below zero is the direction of the claim)"
+            else "on the original scale of the outcome"),
+    sprintf("  p %s with CR2 errors clustered by country   p %s by the wild cluster bootstrap",
+            .fmt_p(res$p_cr2), .fmt_p(res$p_wcr)),
+    paste0(if (aligned) "  Class: " else "  Class, on the claim-aligned scale: ", .class_line(res)),
+    sprintf("  Placement: %.0f%% of the 864 specifications on the curve have a more negative claim-aligned r",
+            100 * res$placement),
+    if (aligned && ch$my_predictor == "growth")
+      "  (growth: b, t and r are shown with their signs flipped, because the claim expects framing to rise with growth)",
+    if (!aligned)
+      "  (claim_align = FALSE: shown on the original scale; the class chart receives the claim-aligned values)",
+    paste0("  (", res$source, ")")))
+  invisible(res)
+}
+
+# --- Task 4: the exploratory helpers -------------------------------------------
 .tried <- new.env(parent = emptyenv())
-.tried$log <- NULL
-.tried$last <- NULL
+assign("log", NULL, envir = .tried)
+assign("last", NULL, envir = .tried)
 
 try_spec <- function(outcome = "mcosmo", predictor = "unemp", copredictor = "none",
                      estimator = "fe_twoway", sample = "all", weights = "none",
                      construction = "share", noop = "zero", item_set = "all",
                      cell_weight = "unweighted", measure = NULL,
-                     pred_form = "raw", family = "gaussian", se = "conventional") {
-  if (is.null(measure)) measure <- if (predictor == "unemp") "wb_nat" else "wb_growth"
+                     pred_form = "raw", family = "gaussian", se = "wcr") {
+  if (is.null(measure)) measure <- if (identical(predictor, "growth")) "wb_growth" else "wb_nat"
   ch <- .validate(list(my_outcome = outcome, my_predictor = predictor, my_copredictor = copredictor,
                        my_estimator = estimator, my_sample = sample, my_weights = weights,
                        my_construction = construction, my_noop = noop, my_item_set = item_set,
                        my_cell_weight = cell_weight, my_measure = measure,
                        my_pred_form = pred_form, my_family = family, my_se = se), as_args = TRUE)
-  fit <- .fit_spec(ch)
+  res <- .result(ch)
+  .print_result(ch, res, lead = "")
   fl  <- .flip(ch)
-  p   <- 2 * stats::pt(-abs(fit$statistic), fit$df)
-  stat_lab <- if (ch$my_family == "beta") "z" else "t"
-
-  cat(.spec_line(ch), "\n")
-  cat(sprintf("  b = %.5f   se = %.5f   %s = %.3f on %d df   p %s   (%s)\n",
-              fl * fit$estimate, fit$se, stat_lab, fl * fit$statistic, round(fit$df),
-              if (p < 0.001) "< 0.001" else sprintf("= %.3f", p), fit$source))
-  cat(sprintf("  claim-aligned partial r = %.3f   (below zero supports the claim)\n", fl * fit$r))
-
-  row <- as.data.frame(setNames(as.list(unlist(ch)), sub("^my_", "", names(ch))),
-                       stringsAsFactors = FALSE)
-  row$b <- fl * fit$estimate; row$t <- fl * fit$statistic
-  row$r_aligned <- fl * fit$r; row$sig <- p < 0.05
-  .tried$log  <- rbind(.tried$log, row)
-  .tried$last <- list(ch = ch, fit = fit)
+  row <- data.frame(stats::setNames(ch, sub("^my_", "", names(ch))),
+                    b = fl * res$b, t = fl * res$t, r_aligned = res$r_ca, p_boot = res$p_wcr,
+                    stringsAsFactors = FALSE)
+  assign("log", dplyr::bind_rows(.tried$log, row), envir = .tried)
+  assign("last", list(ch = ch, res = res), envir = .tried)
   invisible(row)
 }
 
-# The running log of everything try_spec() has fitted. Only the axes that
-# varied are shown; the constant ones are the baseline.
+# The running log of everything try_spec() has fitted. Only the decisions that
+# varied are shown; the constant ones are those of the reproduced
+# specification or of every call.
 my_experiments <- function() {
-  if (is.null(.tried$log)) {
-    cat("Nothing tried yet – call try_spec() at least once.\n")
+  d <- .tried$log
+  if (is.null(d)) {
+    writeLines("Nothing tried yet – call try_spec() at least once.")
     return(invisible(NULL))
   }
-  d <- .tried$log
-  axes <- sub("^my_", "", names(.menu))
-  varied <- axes[vapply(d[axes], function(x) length(unique(x)) > 1, logical(1))]
-  show <- d[, c(varied, "b", "t", "r_aligned", "sig"), drop = FALSE]
-  show$b <- signif(show$b, 3); show$t <- round(show$t, 2)
-  show$r_aligned <- round(show$r_aligned, 3)
-  cat("Specifications you have tried (", nrow(d), "):\n\n", sep = "")
+  axes   <- sub("^my_", "", names(.menu))
+  varied <- names(Filter(\(x) length(unique(x)) > 1, d[axes]))
+  show <- d |>
+    dplyr::select(dplyr::all_of(c(varied, "b", "t", "r_aligned", "p_boot"))) |>
+    dplyr::mutate(b = signif(.data$b, 3), t = round(.data$t, 2),
+                  r_aligned = round(.data$r_aligned, 3), p_boot = round(.data$p_boot, 3))
+  writeLines(sprintf("Specifications you have tried (%d):\n", nrow(d)))
   print(show, row.names = FALSE)
-  cat("\nSpread of claim-aligned r: ",
-      sprintf("%.3f to %.3f", min(d$r_aligned), max(d$r_aligned)),
-      "  |  significant: ", sum(d$sig), " of ", nrow(d), "\n", sep = "")
+  writeLines(sprintf("\nSpread of claim-aligned r: %.3f to %.3f  |  below zero and significant under the bootstrap: %d of %d",
+                     min(d$r_aligned), max(d$r_aligned),
+                     sum(d$r_aligned < 0 & d$p_boot < 0.05), nrow(d)))
   invisible(show)
 }
 
@@ -374,35 +370,36 @@ submit_exploration <- function(nickname = NULL) {
   if (is.null(.tried$last))
     stop("Nothing to submit – call try_spec() first, ending with the specification you want on the chart.",
          call. = FALSE)
-  .submit(.tried$last$ch, .tried$last$fit, "explore",
+  .submit(.tried$last$ch, .tried$last$res, "explore",
           "Your exploratory submission (claim-aligned, the last specification you tried):",
           nickname)
 }
 
-# --- Task 5: the preregistration helpers -----------------------------------
+# --- Task 5: the preregistration helpers ---------------------------------------
 
 prereg <- function() {
-  ch  <- .check_choices()
-  neg <- ch$my_outcome %in% .neg_framings
-  cat("DECLARED – your preregistered specification, fixed before the model is fitted:\n\n")
-  cat("  The question (Level 1)\n")
-  cat("    outcome    :", ch$my_outcome,
-      if (neg) "(negative framing – reverse-coded automatically)" else "", "\n")
-  cat("    predictor  :", ch$my_predictor,
-      if (ch$my_predictor == "growth") "(claim-expected sign flipped automatically)" else "", "\n")
-  cat("    adjusted   :", if (ch$my_copredictor == "other") .copred_term(ch) else "nothing", "\n")
-  cat("    estimator  :", .est_lab(ch$my_estimator), "\n")
-  cat("    sample     :", ch$my_sample, "   whose average:", ch$my_weights, "\n")
-  cat("    scored as  :", ch$my_construction, "\n")
-  cat("  The measurement (Level 2)\n")
-  cat("    no-opinion rule:", ch$my_noop, "  items:", ch$my_item_set, "\n")
-  cat("    cells:", ch$my_cell_weight, "  series:", ch$my_measure, "\n")
-  cat("  The estimation (Level 3)\n")
-  cat("    form:", ch$my_pred_form, "  family:", ch$my_family, "  errors:", ch$my_se, "\n")
-  cat("  claim_align:", isTRUE(claim_align), "\n\n")
-  cat("build_model(), run_spec() and report_result() read these choices from\n")
-  cat("here. Rendered into your report, this cell is your preregistration, and\n")
-  cat("it sits above the cells that fit and submit this specification.\n")
+  ch <- .check_choices()
+  writeLines(c(
+    "DECLARED – your preregistered specification, fixed before the model is fitted:",
+    "",
+    "  The question (Level 1)",
+    paste("    outcome    :", ch$my_outcome),
+    paste0("    predictor  : ", ch$my_predictor,
+           if (ch$my_predictor == "growth") " (claim-expected sign flipped automatically)"),
+    paste("    adjusted   :", if (ch$my_copredictor == "other") .copred_term(ch) else "nothing"),
+    paste("    estimator  :", .est_lab(ch$my_estimator)),
+    paste("    sample     :", ch$my_sample, "   whose average:", ch$my_weights),
+    paste("    scored as  :", ch$my_construction),
+    "  The measurement (Level 2)",
+    paste("    no-opinion rule:", ch$my_noop, "  items:", ch$my_item_set),
+    paste("    cells:", ch$my_cell_weight, "  series:", ch$my_measure),
+    "  The estimation (Level 3)",
+    paste("    form:", ch$my_pred_form, "  family:", ch$my_family, "  inference:", .se_lab),
+    paste("  claim_align:", isTRUE(claim_align)),
+    "",
+    "build_model(), run_spec() and report_result() read these choices from",
+    "here. Rendered into your report, this cell is your preregistration, and",
+    "it sits above the cells that fit and submit this specification."))
   invisible(ch)
 }
 
@@ -416,7 +413,7 @@ build_model <- function(formula, estimator) {
     stop(sprintf("The outcome in your formula is '%s' but you preregistered '%s'. The preregistration is binding, so change the formula to match it.",
                  deparse(formula[[2]]), ch$my_outcome), call. = FALSE)
   want <- c(.main_term(ch), if (ch$my_copredictor == "other") .copred_term(ch))
-  got  <- attr(terms(formula), "term.labels")
+  got  <- attr(stats::terms(formula), "term.labels")
   if (!setequal(got, want))
     stop(sprintf("Right-hand side mismatch: you wrote { %s } but your preregistration implies { %s }.%s",
                  paste(got, collapse = ", "), paste(want, collapse = ", "),
@@ -426,9 +423,9 @@ build_model <- function(formula, estimator) {
   if (missing(estimator) || !identical(estimator, ch$my_estimator))
     stop(sprintf("estimator = \"%s\" does not match your preregistered \"%s\".",
                  if (missing(estimator)) "" else estimator, ch$my_estimator), call. = FALSE)
-  cat("Model accepted – it matches your preregistration:\n")
-  cat("  ", deparse(formula), ", estimated by ", .est_lab(estimator), "\n", sep = "")
-  cat("  Run it with run_spec(my_model).\n")
+  writeLines(c("Model accepted – it matches your preregistration:",
+               paste0("  ", deparse(formula), ", estimated by ", .est_lab(estimator)),
+               "  Run it with run_spec(my_model)."))
   structure(list(choices = ch, formula = formula, estimator = estimator), class = "spec_ticket")
 }
 
@@ -440,29 +437,12 @@ run_spec <- function(spec) {
     stop("The preregistration cell has changed since you built this model – rerun prereg() and build_model() so they agree.",
          call. = FALSE)
   ch  <- spec$choices
-  fit <- .fit_spec(ch)
-  fl  <- .flip(ch)
-  ca  <- isTRUE(claim_align)
-  stat_lab <- if (ch$my_family == "beta") "z" else "t"
-  b <- fit$estimate; tv <- fit$statistic; r <- fit$r
-  if (ca) { b <- fl * b; tv <- fl * tv; r <- fl * r }
-  p <- 2 * stats::pt(-abs(fit$statistic), fit$df)
-  cat(paste0("Your preregistered specification, ", fit$source, ":\n\n"))
-  cat("  ", .spec_line(ch), "\n", sep = "")
-  if (ca && ch$my_outcome %in% .neg_framings)
-    cat("  (negative framing – reverse-coded automatically: claim_align = TRUE)\n")
-  if (ca && ch$my_predictor == "growth")
-    cat("  (growth predictor – sign convention flipped automatically: claim_align = TRUE)\n")
-  if (!ca)
-    cat("  (claim_align = FALSE: shown on the scale of this outcome, and converted for the class chart)\n")
-  cat(sprintf("\n  b = %.5f   se = %.5f   %s = %.3f on %d df   p %s\n",
-              b, fit$se, stat_lab, tv, round(fit$df),
-              if (p < 0.001) "< 0.001" else sprintf("= %.3f", p)))
-  cat(sprintf("  claim-aligned partial r = %.3f   (below zero supports the claim)\n", fl * fit$r))
-  invisible(list(b = b, se = fit$se, stat = tv, df = fit$df, n = fit$n, r = fl * fit$r))
+  res <- .result(ch)
+  .print_result(ch, res, "Your preregistered specification, fitted live:",
+                aligned = isTRUE(claim_align))
 }
 
-# --- Submission tags --------------------------------------------------------
+# --- Submission tags -------------------------------------------------------------
 # Both submissions of a participant carry one short tag inside the spec label,
 # "explore: [amber-otter-42] …", so that the participant can find their own
 # circles on the class chart. The tag rides in the free-text label because the
@@ -521,10 +501,11 @@ run_spec <- function(spec) {
 # One submission, used by both phases. The phase and the tag are prefixed to
 # the free-text spec label, and all fourteen decisions are written into that
 # label. The form, its fields and the collection pipeline are frozen
-# infrastructure and do not change.
-.submit <- function(ch, fit, phase, lead, nickname = NULL) {
+# infrastructure and do not change. The numbers are those of the conventional
+# fit, claim-aligned.
+.submit <- function(ch, res, phase, lead, nickname = NULL) {
   fl <- .flip(ch)
-  b <- fl * fit$estimate; tv <- fl * fit$statistic; r <- fl * fit$r
+  b <- fl * res$b; tv <- fl * res$t; r <- res$r_ca
   tg <- .class_tag(nickname)
   spec_label <- paste0(phase, ": [", tg$tag, "] ", .spec_line(ch))
 
@@ -533,35 +514,40 @@ run_spec <- function(spec) {
              t = "entry.1940779437", df = "entry.1682711955", n = "entry.1586392724",
              r = "entry.1660273001")
   value <- c(spec = spec_label, b = sprintf("%.5f", b),
-             se = sprintf("%.5f", fit$se), t = sprintf("%.3f", tv),
-             df = as.character(round(fit$df)), n = as.character(fit$n),
+             se = sprintf("%.5f", res$se), t = sprintf("%.3f", tv),
+             df = as.character(round(res$df)), n = as.character(res$n),
              r = sprintf("%.3f", r))
-  query <- paste(vapply(names(field), function(k)
+  query <- paste(vapply(names(field), function(k) # r-style: keep – URLencode() takes one string, and purrr is not a dependency of the workspace
     paste0(field[[k]], "=", utils::URLencode(value[[k]], reserved = TRUE)),
     character(1)), collapse = "&")
   url <- sprintf("https://docs.google.com/forms/d/e/%s/viewform?usp=pp_url&%s", FORM_ID, query)
 
-  cat(lead, "\n\n")
-  cat("  spec:", spec_label, "\n")
-  cat(sprintf("  b = %.5f | se = %.5f | %s = %.3f | df = %d | n = %d | r = %.3f\n\n",
-              b, fit$se, if (ch$my_family == "beta") "z" else "t", tv, round(fit$df), fit$n, r))
-  cat("Open the link below (or copy the URL) – the form opens with every field\n")
-  cat("pre-filled; just press Send.\n\n")
-  cat(url, "\n\n")
-  cat(sprintf("Your circles on the class chart carry the tag %s%s.\n", tg$tag,
-              if (!is.null(tg$replaced)) sprintf(" (it replaces %s)", tg$replaced) else ""))
-  cat("Type it into the my_tag line of the live cell on the Multiverse page to\n")
-  cat("highlight them. Both of your submissions share it. To choose your own, pass\n")
-  cat("nickname = \"...\" – pick a nickname rather than your name, because the chart\n")
-  cat("is public.\n")
-  invisible(list(spec = spec_label, tag = tg$tag, b = b, se = fit$se, statistic = tv,
-                 df = fit$df, n = fit$n, r = r, url = url))
+  writeLines(c(
+    lead,
+    "",
+    paste("  spec:", spec_label),
+    sprintf("  b = %.5f | se = %.5f | t = %.3f | df = %d | n = %d | r = %.3f",
+            b, res$se, tv, round(res$df), res$n, r),
+    paste0("  Class: ", .class_line(res)),
+    "",
+    "Open the link below (or copy the URL) – the form opens with every field",
+    "pre-filled; just press Send.",
+    "",
+    url,
+    "",
+    sprintf("Your circles on the class chart carry the tag %s%s.", tg$tag,
+            if (!is.null(tg$replaced)) sprintf(" (it replaces %s)", tg$replaced) else ""),
+    "Type it into the my_tag line of the live cell on the Multiverse page to",
+    "highlight them. Both of your submissions share it. To choose your own, pass",
+    "nickname = \"...\" – pick a nickname rather than your name, because the chart",
+    "is public."))
+  invisible(list(spec = spec_label, tag = tg$tag, b = b, se = res$se, statistic = tv,
+                 df = res$df, n = res$n, r = r, url = url))
 }
 
 report_result <- function(nickname = NULL) {
-  ch  <- .check_choices()
-  fit <- .fit_spec(ch)
-  .submit(ch, fit, "declared",
+  ch <- .check_choices()
+  .submit(ch, .result(ch), "declared",
           "Your declared submission (claim-aligned, straight from your preregistration):",
           nickname)
 }
