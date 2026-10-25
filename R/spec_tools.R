@@ -25,7 +25,7 @@
 #               the curve, so that it returns the stored p-value exactly. The
 #               CR2 p-value and the placement among the 864 are read from
 #               data/spec_curve.csv, so that CR2 needs no further package.
-#               Base R, dplyr and readr only, all already required by the
+#               Base R, dplyr, readr and fixest, all already required by the
 #               report. Through it the report reads data/EUframes_cy.csv,
 #               data/teney_panel_measurement.csv, data/predictor_measures.csv,
 #               data/spec_curve.csv and data/menu_options.csv.
@@ -130,7 +130,7 @@ sys.source("R/_wild_bootstrap.R", envir = .wcr)
   q <- paste0("\"", x, "\"")
   if (length(q) == 1) q else paste(paste(q[-length(q)], collapse = ", "), "or", q[length(q)])
 }
-# the earlier menu spelled two options differently; their reasons still apply
+# two older option codes that labels and calls may still use, mapped to the rows that hold their reasons
 .legacy <- c("se:clustered" = "cr1", "weights:n_cy" = "n_cell")
 
 .on_menu <- function(k, v) is.character(v) && length(v) == 1 && !is.na(v) && v %in% .menu[[k]]
@@ -449,7 +449,7 @@ run_spec <- function(spec) {
 # form and its fields are frozen infrastructure. It is drawn once and kept in
 # .class-tag at the root of the workspace, so the explored and the declared
 # submission share it across sessions; a nickname passed to either submission
-# function replaces it. Base R throughout, as in the rest of this file.
+# function replaces it. Base R throughout.
 .tag_words <- list(
   adj  = c("amber", "azure", "bright", "calm", "coral", "crisp", "dusky", "early",
            "fair", "gentle", "golden", "hazel", "ivory", "jade", "keen", "lively",
@@ -535,7 +535,7 @@ run_spec <- function(spec) {
     "",
     url,
     "",
-    sprintf("Your circles on the class chart carry the tag %s%s.", tg$tag,
+    sprintf("Your marks on the class chart carry the tag %s%s.", tg$tag,
             if (!is.null(tg$replaced)) sprintf(" (it replaces %s)", tg$replaced) else ""),
     "Type it into the my_tag line of the live cell on the Multiverse page to",
     "highlight them. Both of your submissions share it. To choose your own, pass",

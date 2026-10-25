@@ -53,7 +53,7 @@ The original author (OA) studied how citizens frame the European Union. One clai
 
 Operationalised the way that the Multi100 project constrained it for its five analysts: does a country's **unemployment rate** (poor economic performance) lower the **cosmopolitan** dimension of EU framing (peace, democracy, free movement, cultural diversity, a stronger say in the world)? The published result was a coefficient of −0.0034, t = −4.03.
 
-You have the data, the tools and the workflow that the project used, and the code you work through is the coordinator's own submitted analysis. You are analyst no. 6, and the question is how robust that number is to *justifiable* alternative choices. Work through the five tasks below in order, from a setup check to two dots on the live class chart: an exploratory one from Task 4, and a declared one from Task 5, whose specification you fix in your preregistration before running it.
+You have the data, the tools and the workflow that the project used, and the code you work through is the facilitator's own submitted analysis. You are analyst no. 6, and the question is how robust that number is to *justifiable* alternative choices. Work through the five tasks below in order, from a setup check to two dots on the live class chart: an exploratory one from Task 4, and a declared one from Task 5, whose specification you fix in your preregistration before running it.
 
 ::: callout-tip
 ## How the tasks work
@@ -132,7 +132,7 @@ Before estimating, say *precisely* what you are estimating. An estimand has two 
 
 > Unit-specific quantity: the change in \[\_\_\_\_\] for a one-point difference in \[\_\_\_\_\]. Target population: \[\_\_\_\_\].
 
-*(A defensible filling: the change in mean cosmopolitan framing within a country-year, for a one-percentage-point difference in that country's unemployment rate; across EU member states, 2004–2013.)*
+*(A defensible filling: the change in mean cosmopolitan framing within a country from one year to another, for a one-percentage-point difference in that country's unemployment rate; across EU member states, 2004–2013.)*
 
 Next come the identification assumptions: the claims about what causes what that must hold for the coefficient to be read as the effect of unemployment. `R/dag_starter.R` builds the graph with `dagify()`, where every arrow is an ordinary R formula written the way you read a regression, effect on the left of the tilde and cause on the right. `framing ~ unemployment` is therefore the arrow unemployment → framing. The causal path and the two confounder pairs are switched on; the arguable arrows are in the same call, commented out with a `#`, each with a line of justification above it. Open the file, take the `#` off any arrow you believe, re-source, and re-run `adjustmentSets()`. A node appears in the plot only once some arrow mentions it, so the plot shows only the arrows that are switched on and the nodes that they join.
 
@@ -163,25 +163,25 @@ Whatever set is returned by your DAG becomes field 4 of the preregistration you 
 ------------------------------------------------------------------------
 
 ::: {.callout-note title="Task 3 – Reproduce the recorded result"}
-This is the **reproducibility** check. Fit the two-way fixed-effects model that follows from the constraints of Task 2 in Multi100: cosmopolitan framing on grand-mean-centred unemployment, with country and year fixed effects. The target is **t = −3.804** (df = 233, N = 270) – the value on record for analyst C6HJR in the Multi100 dataset.
+This is the **reproducibility** check. Fit the two-way fixed-effects model that analyst C6HJR chose under the constraints of Task 2 in Multi100: cosmopolitan framing on grand-mean-centred unemployment, with country and year fixed effects. The target is **t = −3.804** (df = 233, N = 270) – the value on record for analyst C6HJR in the Multi100 dataset.
 
 ```{r}
 #| label: fit-corrected
 # Grand-mean centre unemployment, as the submitted analysis did. With
 # two-way fixed effects this shifts the intercept, not the slope or the t – it
-# is the transformation that the constrained specification names, so do it
+# is the transformation that the recorded specification uses, so do it
 # explicitly.
 euframes <- euframes |> mutate(unemp_c = unemp - mean(unemp, na.rm = TRUE))
 
 # fixest::feols – the bar separates the regression from the fixed effects.
-m1 <- feols(mcosmo ~ unemp_c | cntry + year, data = euframes)
+m1 <- feols(mcosmo ~ unemp_c | cntry + year, data = euframes, vcov = "iid")
 
 tidy(m1)
 ```
 
 ```{r}
 #| label: tbl-corrected
-#| tbl-cap: "The constrained model on EUframes_cy.csv."
+#| tbl-cap: "The reproduced model on EUframes_cy.csv."
 modelsummary(
   list("two-way FE (fixest)" = m1),
   estimate  = "{estimate}",
@@ -191,13 +191,13 @@ modelsummary(
 )
 ```
 
-The coefficient is **−0.00347** with **t = −3.804**, which is the value recorded for analyst C6HJR, reproduced from the published data and the published model. When two fixed-effect dimensions are present, `feols` reports classical (IID) standard errors by default, which assume that the errors are independent and identically distributed. That is why the *t* value matches, to three decimals, the value that the analyst obtained with `plm`.
+The coefficient is **−0.00347** with **t = −3.804**, which is the value recorded for analyst C6HJR, reproduced from the published data and the published model. The argument `vcov = "iid"` asks for classical standard errors, which assume that the errors are independent and identically distributed; they are the kind that `plm` reported for the recorded value, which is why the *t* value matches it to three decimals. The case study and Part 4 show what changes when the country-years are not treated as independent.
 :::
 
 ::: {.callout-note collapse="true" title="Reproduction and the five analysts"}
 You reproduced the recorded value exactly, and so did everyone else in the class, because everyone ran the same code on the same file. That is why reproducibility is the cheapest of the three Rs to establish.
 
-The five Multi100 analysts each wrote their own code for the same claim, and came back with five different answers, one of them not significant. Their pipelines are competent, well-organised work, so the spread does not come from poor analysis. It arises because a claim stated in words leaves several defensible quantities open, and different analysts estimate different ones without noticing that they have chosen between them.
+The five Multi100 analysts each wrote their own code for the same claim, and came back with five different numbers, one of them not significant under the analyst's own test. Part of the spread comes from the questions that each analyst chose to answer, part from errors that only a reading of the code shows, and most of the spread in the recorded correlations from the conversion that put them on one scale, as the case study on the course site sets out.
 
 In Task 2 you named the quantity you are after and drew the graph from which your adjustment set follows. In Task 4 you will see how far the answer moves when the other choices change.
 :::
@@ -205,7 +205,7 @@ In Task 2 you named the quantity you are after and drew the graph from which you
 ------------------------------------------------------------------------
 
 ::: {.callout-note title="Task 4 – Work the menu"}
-This task is **exploratory**. Try several specifications, see what each one does, and get a feel for which choices move the estimate and which barely touch it. The specification that you submit with `submit_exploration()` at the end of this task is labelled exploratory on the class chart. The one labelled declared is fixed later, in the preregistration cell of Task 5, before it is run. Both carry the tag that `submit_exploration()` prints, such as `amber-otter-42`, which is kept in the file `.class-tag` of this workspace and lets you find your own circles on the chart. To choose your own, write `submit_exploration(nickname = "...")` with a nickname rather than your name, because the chart is public.
+This task is **exploratory**. Try several specifications, see what each one does, and get a feel for which choices move the estimate and which barely touch it. The specification that you submit with `submit_exploration()` at the end of this task is labelled exploratory on the class chart. The one labelled declared is fixed later, in the preregistration cell of Task 5, before it is run. Both carry the tag that `submit_exploration()` prints, such as `amber-otter-42`, which is kept in the file `.class-tag` of this workspace and lets you find your own marks on the chart. To choose your own, write `submit_exploration(nickname = "...")` with a nickname rather than your name, because the chart is public.
 
 `try_spec()` takes one argument per decision of the specification menu. Every argument defaults to the specification that you just reproduced, so changing one thing means changing one argument, and everything you do not name stays as it was in Task 3. Every call is a real fit on your machine. The Level 1 arguments change the question, the Level 2 arguments select which version of the country-year panel is fitted (which items the outcome was built from, whether its cells were weighted, what was done with respondents who mentioned nothing, which published series supplies the predictor), and the Level 3 arguments set the form of the predictor.
 
@@ -368,7 +368,7 @@ Each of these is a real fit that you can run in this workspace if you have time 
 
 - **Beyond unemployment.** Preregister `my_predictor <- "growth"` with `my_measure <- "wb_growth"` (GDP growth, which four of the five original analysts used when Multi100 left the choice of measure to them): the claim now predicts a *positive* growth coefficient on the positive framings, and the sign convention flips automatically. Refitted on the EU-frames panel, the model that analyst C6HJR chose in Task 1 of Multi100, `mpos ~ growth + unemp` with two-way fixed effects, gives a growth coefficient of b = +0.00167, t = 1.59 on 232 df and a bootstrap p of 0.345, which is not significant.
 
-- **The full SCORE dossier.** OA's paper went through all three Rs in the SCORE programme and got three different verdicts: its push-button reproduction **failed** (the author-provided Stata code referenced file names that did not match what was available), its reproduction from the source data was recorded as **not reproduced**, and its preregistered secondary-data replication returned a **sign flip** (a positive coefficient, b = 0.002, p = .046, in the opposite direction to the original). Explore reproduction, robustness, and replication side by side at <https://osf.io/h7432/>.
+- **The full SCORE dossier.** OA's paper went through all three Rs in the SCORE programme and got three different verdicts: its push-button reproduction **failed** (the author-provided Stata code referenced file names that did not match what was available), its reproduction from the source data was recorded as **not reproduced**, and its preregistered replication on later Eurobarometer waves was judged **not successful** (a positive coefficient, opposite in sign to the claim, which a revised report of October 2026 puts at b = 0.001, p = 0.153). Explore reproduction, robustness, and replication side by side at <https://osf.io/h7432/>.
 :::
 
 ------------------------------------------------------------------------
@@ -381,4 +381,4 @@ Lundberg, I., Johnson, R., & Stewart, B. M. (2021). What is your estimand? Defin
 
 van den Akker, O., Weston, S., Campbell, L., et al. (2021). Preregistration of secondary data analysis: A template and tutorial. *Meta-Psychology*, 5, 2625.
 
-Aczel, B., Szaszi, B., Clelland, H. T., et al. (2026). Investigating the analytical robustness of the social and behavioural sciences (Multi100). *Nature*, 652(8108), 135–142.
+Aczel, B., Szaszi, B., Clelland, H. T., et al. (2026). Investigating the analytical robustness of the social and behavioural sciences. *Nature*, 652(8108), 135–142.
