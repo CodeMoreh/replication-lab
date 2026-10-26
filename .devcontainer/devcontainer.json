@@ -6,7 +6,7 @@
       "version": "1.9.36"
     }
   },
-  "postCreateCommand": "Rscript -e \"install.packages(c('dplyr','readr','ggplot2','broom','fixest','dagitty','ggdag','modelsummary','osfr'), repos='https://packagemanager.posit.co/cran/__linux__/jammy/latest')\"",
+  "postCreateCommand": "Rscript -e \"install.packages('pak', repos='https://packagemanager.posit.co/cran/__linux__/jammy/latest'); pak::pak(c('readr','datawizard','insight','dplyr','purrr','tibble','fixest','clubSandwich','effectsize','parameters','tinyplot','dagitty','ggdag','modelsummary','osfr','rmarkdown'))\"",
   "customizations": {
     "vscode": {
       "extensions": [

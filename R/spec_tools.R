@@ -19,23 +19,24 @@
 #               curve stops with the reason recorded in data/menu_options.csv
 #               and the page of the course site that teaches it. Every
 #               specification on the curve is a live fit on the country-year
-#               panel that its measurement choices select, tested by the
-#               restricted wild cluster bootstrap by country of
-#               R/_wild_bootstrap.R, a verbatim copy of the file that classes
-#               the curve, so that it returns the stored p-value exactly. The
-#               CR2 p-value and the placement among the 864 are read from
-#               data/spec_curve.csv, so that CR2 needs no further package.
-#               Base R, dplyr, readr and fixest, all already required by the
-#               report. Through it the report reads data/EUframes_cy.csv,
-#               data/teney_panel_measurement.csv, data/predictor_measures.csv,
-#               data/spec_curve.csv and data/menu_options.csv.
+#               panel that its measurement choices select, tested by CR2
+#               errors clustered by country with Satterthwaite df
+#               (clubSandwich), the rule that classes the curve, so that it
+#               returns the stored p-value exactly. The placement among the
+#               864 is read from data/spec_curve.csv. The packages are those
+#               that the report requires: readr, dplyr, purrr, fixest,
+#               clubSandwich and effectsize. Through it the report reads
+#               data/EUframes_cy.csv, data/teney_panel_measurement.csv,
+#               data/predictor_measures.csv, data/spec_curve.csv and
+#               data/menu_options.csv.
+#               The data of a specification are filtered with dplyr, because
+#               the datawizard verbs evaluate their conditions outside the
+#               calling function and cannot see its arguments.
 # Author:       Chris Moreh
-# Last updated: 2026-10-25
+# Last updated: 2026-10-26
 # Sourced by:   index.qmd and working_script.R (source("R/spec_tools.R"))
 ##############################################################################
 
-.wcr <- new.env()
-sys.source("R/_wild_bootstrap.R", envir = .wcr)
 .course_url <- "https://codemoreh.github.io/applied-replication"
 
 # The thirteen axis codes that key the curve, in its column order; the
@@ -65,7 +66,7 @@ sys.source("R/_wild_bootstrap.R", envir = .wcr)
   # Level 3 – Estimation
   my_pred_form    = c("raw", "log"),
   my_family       = "gaussian",
-  my_se           = "wcr"
+  my_se           = "cr2"
 )
 .measures_for <- list(unemp  = c("wb_nat", "es_1574_act", "es_2064_pop", "es_2564_lfs"),
                       growth = "wb_growth")
@@ -73,7 +74,7 @@ sys.source("R/_wild_bootstrap.R", envir = .wcr)
 .est_lab <- function(e) c(
   fe_twoway  = "two-way fixed effects (country + year)",
   fe_country = "country fixed effects")[[e]]
-.se_lab <- "wild cluster bootstrap by country"
+.se_lab <- "CR2 errors clustered by country, Satterthwaite df"
 
 # The term for the predictor that the claim is about, as it appears in a
 # formula: log(unemp) when the log form is chosen, else the bare variable name.
@@ -97,12 +98,6 @@ sys.source("R/_wild_bootstrap.R", envir = .wcr)
 }
 .curve   <- function() .read_once("curve", "data/spec_curve.csv")
 .options <- function() .read_once("options", "data/menu_options.csv")
-
-# the sign matrix of the bootstrap, drawn once from its fixed seed
-.signs <- function() {
-  if (is.null(.cache$signs)) assign("signs", .wcr$wcr_signs("rademacher"), envir = .cache)
-  .cache$signs
-}
 
 # --- validation --------------------------------------------------------------
 # Two entry points into the same rules. .validate() takes a named list, which
@@ -153,7 +148,7 @@ sys.source("R/_wild_bootstrap.R", envir = .wcr)
             shown(axis), v, row$label),
     paste0("  Why: ", row$reason),
     if (axis == "se")
-      "  Inference is fixed: every result on the curve is tested by the wild cluster bootstrap by country, and the printout gives the conventional t and the CR2 p beside it.",
+      "  Inference is fixed: every result on the curve is tested by CR2 errors clustered by country with Satterthwaite df, and the printout gives the conventional t beside it.",
     paste0("  Where it is taught: ", .page_ref(row$taught_on)),
     map,
     sprintf("  To stay on the curve, choose %s = %s.", shown(axis), .or_list(keep))
@@ -172,7 +167,7 @@ sys.source("R/_wild_bootstrap.R", envir = .wcr)
   # the co-predictor may also be named by its variable, growth or unemp
   if (identical(ch$my_copredictor, .copred_term(ch)))
     ch <- utils::modifyList(ch, list(my_copredictor = "other"))
-  bad <- Filter(\(k) !.on_menu(k, ch[[k]]), names(.menu))
+  bad <- purrr::discard(names(.menu), \(k) .on_menu(k, ch[[k]]))
   if (length(bad) > 0) .refuse(bad[1], ch[[bad[1]]], ch, as_args)
   if (ch$my_predictor == "growth" && ch$my_pred_form == "log")
     stop(sprintf("GDP growth enters raw only – it takes negative values, so its log is undefined. Use %s = \"raw\".",
@@ -187,7 +182,7 @@ sys.source("R/_wild_bootstrap.R", envir = .wcr)
 
 .check_choices <- function() {
   need <- names(.menu)
-  missing <- Filter(Negate(exists), need)
+  missing <- purrr::discard(need, exists)
   if (length(missing) > 0)
     stop("Not declared yet: ", paste(missing, collapse = ", "),
          ". Fill in every choice in the preregistration cell and run it first.",
@@ -234,7 +229,7 @@ sys.source("R/_wild_bootstrap.R", envir = .wcr)
 
 .curve_row <- function(ch) {
   cv  <- .curve()
-  hit <- cv[match(.key_of(ch), do.call(paste, c(unname(as.list(cv[.axis_codes])), sep = "|"))), ]
+  hit <- cv[match(.key_of(ch), purrr::exec(paste, !!!unname(as.list(cv[.axis_codes])), sep = "|")), ]
   if (is.na(hit$b))
     stop("That specification passed the checks but is not among the 864 on the curve. This should not happen; check that data/spec_curve.csv is the copy that came with the workspace.",
          call. = FALSE)
@@ -242,31 +237,37 @@ sys.source("R/_wild_bootstrap.R", envir = .wcr)
 }
 
 # --- the live fit --------------------------------------------------------------
-# The conventional fit is fixest with country (and year) fixed effects; the
-# bootstrap takes the same model as a design matrix with the fixed effects as
-# dummies. The result has the form that the printout and the submission use:
-# the conventional fit (b, se, t, df, r), the claim-aligned r, the two
-# clustered tests, and the placement among the 864.
+# The conventional fit is fixest with country (and year) fixed effects. The
+# test is CR2 errors clustered by country with Satterthwaite df, the
+# bias-reduced linearisation of Bell and McCaffrey (2002) with the df of
+# Pustejovsky and Tipton (2018, Journal of Business & Economic Statistics),
+# computed by clubSandwich on the same model fitted by lm() with the fixed
+# effects as dummies. r is the conversion rule of Multi100
+# (standard_correlation_coefficient.R in marton-balazs-kovacs/multi100 on
+# GitHub), r = t / sqrt(t^2 + df), which effectsize::t_to_r() computes. The
+# result has the form that the printout and the submission use: the
+# conventional fit (b, se, t, df, r), the claim-aligned r, the CR2 test, and
+# the placement among the 864.
 .result <- function(ch) {
-  d   <- .build_data(ch)
-  rhs <- paste(c("x", if (ch$my_copredictor == "other") "copred"), collapse = " + ")
-  fe  <- c(fe_twoway = "cntry + year", fe_country = "cntry")[[ch$my_estimator]]
-  m   <- fixest::feols(stats::as.formula(paste("y ~", rhs, "|", fe)), data = d, vcov = "iid")
-  ct  <- fixest::coeftable(m)
-  t   <- ct["x", "t value"]
-  df  <- fixest::degrees_freedom(m, type = "resid")
+  d    <- .build_data(ch)
+  rhs  <- paste(c("x", if (ch$my_copredictor == "other") "copred"), collapse = " + ")
+  fe   <- c(fe_twoway = "cntry + year", fe_country = "cntry")[[ch$my_estimator]]
+  m    <- fixest::feols(stats::as.formula(paste("y ~", rhs, "|", fe)), data = d, vcov = "iid")
+  conv <- fixest::coeftable(m)["x", ]
+  df   <- fixest::degrees_freedom(m, type = "resid")
   dummies <- c(fe_twoway = "factor(cntry) + factor(year)", fe_country = "factor(cntry)")[[ch$my_estimator]]
-  X    <- stats::model.matrix(stats::as.formula(paste("y ~", rhs, "+", dummies)), data = d)
-  boot <- .wcr$wcr_test(d$y, X, d$cntry, .signs(), term = "x")
+  m_lm <- stats::lm(stats::as.formula(paste("y ~", rhs, "+", dummies)), data = d)
+  cr2  <- clubSandwich::coef_test(m_lm, vcov = "CR2", cluster = d$cntry, test = "Satterthwaite",
+                                  coefs = "x")
   stored <- .curve_row(ch)
-  if (abs(t - stored$t) > 1e-8 || abs(boot[["p"]] - stored$p_wcr) > 1e-9)
-    warning(sprintf("The live fit (t = %.4f, bootstrap p = %.4f) differs from the curve shipped with the workspace (t = %.4f, p = %.4f). A file in data/ may have been edited; restore it from the course repository.",
-                    t, boot[["p"]], stored$t, stored$p_wcr), call. = FALSE)
-  r <- t / sqrt(t^2 + df)
-  list(b = ct["x", "Estimate"], se = ct["x", "Std. Error"], t = t, df = df, n = stats::nobs(m),
-       r = r, r_ca = .flip(ch) * r, p_cr2 = stored$p_cr2, p_wcr = boot[["p"]],
+  if (abs(conv[["t value"]] - stored$t) > 1e-8 || abs(cr2$p_Satt - stored$p_cr2) > 1e-9)
+    warning(sprintf("The live fit (t = %.4f, CR2 p = %.4f) differs from the curve shipped with the workspace (t = %.4f, p = %.4f). A file in data/ may have been edited; restore it from the course repository.",
+                    conv[["t value"]], cr2$p_Satt, stored$t, stored$p_cr2), call. = FALSE)
+  r <- effectsize::t_to_r(conv[["t value"]], df)$r
+  list(b = conv[["Estimate"]], se = conv[["Std. Error"]], t = conv[["t value"]], df = df,
+       n = stats::nobs(m), r = r, r_ca = .flip(ch) * r, p_cr2 = cr2$p_Satt, df_cr2 = cr2$df_Satt,
        placement = mean(.curve()$r_ca < stored$r_ca),
-       source = "fitted live, with the bootstrap run here on 9,999 draws; the CR2 p is read from data/spec_curve.csv")
+       source = "fitted live, with CR2 and its Satterthwaite df computed here by clubSandwich")
 }
 
 # --- the printout ----------------------------------------------------------------
@@ -282,15 +283,16 @@ sys.source("R/_wild_bootstrap.R", envir = .wcr)
          ch$my_cell_weight, ", ", ch$my_measure, " | ", ch$my_family, ", se:", ch$my_se, "]")
 }
 
-.fmt_p <- function(p) if (p < 0.001) "< 0.001" else sprintf("= %.3f", p)
+# four decimals, so that a p just above 0.05 never prints as 0.050
+.fmt_p <- function(p) if (p < 0.001) "< 0.001" else sprintf("= %.4f", p)
 
 .class_line <- function(res) {
   below <- res$r_ca < 0
-  sig   <- res$p_wcr < 0.05
-  if (below && sig) "below zero and significant under the bootstrap (p < 0.05), in the direction of the claim"
-  else if (below) "below zero, but not significant under the bootstrap (p >= 0.05)"
-  else if (sig) "above zero and significant under the bootstrap, against the direction of the claim"
-  else "above zero and not significant under the bootstrap"
+  sig   <- res$p_cr2 < 0.05
+  if (below && sig) "below zero and significant under CR2 (p < 0.05), in the direction of the claim"
+  else if (below) "below zero, but not significant under CR2 (p >= 0.05)"
+  else if (sig) "above zero and significant under CR2, against the direction of the claim"
+  else "above zero and not significant under CR2"
 }
 
 .print_result <- function(ch, res, lead = NULL, aligned = TRUE) {
@@ -303,8 +305,8 @@ sys.source("R/_wild_bootstrap.R", envir = .wcr)
     sprintf("  partial r = %.3f, %s", if (aligned) res$r_ca else res$r,
             if (aligned) "claim-aligned (below zero is the direction of the claim)"
             else "on the original scale of the outcome"),
-    sprintf("  p %s with CR2 errors clustered by country   p %s by the wild cluster bootstrap",
-            .fmt_p(res$p_cr2), .fmt_p(res$p_wcr)),
+    sprintf("  p %s with CR2 errors clustered by country, on %.1f Satterthwaite df",
+            .fmt_p(res$p_cr2), res$df_cr2),
     paste0(if (aligned) "  Class: " else "  Class, on the claim-aligned scale: ", .class_line(res)),
     sprintf("  Placement: %.0f%% of the 864 specifications on the curve have a more negative claim-aligned r",
             100 * res$placement),
@@ -325,7 +327,7 @@ try_spec <- function(outcome = "mcosmo", predictor = "unemp", copredictor = "non
                      estimator = "fe_twoway", sample = "all", weights = "none",
                      construction = "share", noop = "zero", item_set = "all",
                      cell_weight = "unweighted", measure = NULL,
-                     pred_form = "raw", family = "gaussian", se = "wcr") {
+                     pred_form = "raw", family = "gaussian", se = "cr2") {
   if (is.null(measure)) measure <- if (identical(predictor, "growth")) "wb_growth" else "wb_nat"
   ch <- .validate(list(my_outcome = outcome, my_predictor = predictor, my_copredictor = copredictor,
                        my_estimator = estimator, my_sample = sample, my_weights = weights,
@@ -335,10 +337,10 @@ try_spec <- function(outcome = "mcosmo", predictor = "unemp", copredictor = "non
   res <- .result(ch)
   .print_result(ch, res, lead = "")
   fl  <- .flip(ch)
-  row <- data.frame(stats::setNames(ch, sub("^my_", "", names(ch))),
-                    b = fl * res$b, t = fl * res$t, r_aligned = res$r_ca, p_boot = res$p_wcr,
+  row <- data.frame(stats::setNames(ch, sub("^my_", "", names(ch))), # r-style: keep – prints as the plain table of my_experiments()
+                    b = fl * res$b, t = fl * res$t, r_aligned = res$r_ca, p_cr2 = res$p_cr2,
                     stringsAsFactors = FALSE)
-  assign("log", dplyr::bind_rows(.tried$log, row), envir = .tried)
+  assign("log", purrr::list_rbind(list(.tried$log, row)), envir = .tried)
   assign("last", list(ch = ch, res = res), envir = .tried)
   invisible(row)
 }
@@ -353,16 +355,16 @@ my_experiments <- function() {
     return(invisible(NULL))
   }
   axes   <- sub("^my_", "", names(.menu))
-  varied <- names(Filter(\(x) length(unique(x)) > 1, d[axes]))
+  varied <- names(purrr::keep(d[axes], \(x) length(unique(x)) > 1))
   show <- d |>
-    dplyr::select(dplyr::all_of(c(varied, "b", "t", "r_aligned", "p_boot"))) |>
-    dplyr::mutate(b = signif(.data$b, 3), t = round(.data$t, 2),
-                  r_aligned = round(.data$r_aligned, 3), p_boot = round(.data$p_boot, 3))
+    datawizard::data_select(select = c(varied, "b", "t", "r_aligned", "p_cr2")) |>
+    datawizard::data_modify(b = signif(b, 3), t = round(t, 2), r_aligned = round(r_aligned, 3),
+                            p_cr2 = round(p_cr2, 4))
   writeLines(sprintf("Specifications you have tried (%d):\n", nrow(d)))
   print(show, row.names = FALSE)
-  writeLines(sprintf("\nSpread of claim-aligned r: %.3f to %.3f  |  below zero and significant under the bootstrap: %d of %d",
+  writeLines(sprintf("\nSpread of claim-aligned r: %.3f to %.3f  |  below zero and significant under CR2: %d of %d",
                      min(d$r_aligned), max(d$r_aligned),
-                     sum(d$r_aligned < 0 & d$p_boot < 0.05), nrow(d)))
+                     sum(d$r_aligned < 0 & d$p_cr2 < 0.05), nrow(d)))
   invisible(show)
 }
 
@@ -517,9 +519,9 @@ run_spec <- function(spec) {
              se = sprintf("%.5f", res$se), t = sprintf("%.3f", tv),
              df = as.character(round(res$df)), n = as.character(res$n),
              r = sprintf("%.3f", r))
-  query <- paste(vapply(names(field), function(k) # r-style: keep – URLencode() takes one string, and purrr is not a dependency of the workspace
-    paste0(field[[k]], "=", utils::URLencode(value[[k]], reserved = TRUE)),
-    character(1)), collapse = "&")
+  query <- names(field) |>
+    purrr::map_chr(\(k) paste0(field[[k]], "=", utils::URLencode(value[[k]], reserved = TRUE))) |>
+    paste(collapse = "&")
   url <- sprintf("https://docs.google.com/forms/d/e/%s/viewform?usp=pp_url&%s", FORM_ID, query)
 
   writeLines(c(

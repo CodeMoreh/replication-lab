@@ -21,28 +21,35 @@ knitr:
 #| label: setup
 #| include: false
 
-# Packages used across the report. Run R/check_setup.R first if any are missing
-# on your own laptop – it tells you which, and how to install them.
-library(dplyr)
-library(readr)
-library(ggplot2)
-library(broom)
-library(fixest)
-library(modelsummary)
-
-# A calm default look for every figure.
-theme_set(theme_minimal(base_size = 12))
+# Every function is called with the name of its package, as in
+# readr::read_csv(), so that you can see where each one comes from. Run
+# R/check_setup.R first if a package is missing on your own laptop – it tells
+# you which, and how to install it. The figures are drawn with tinyplot
+# (McDermott, Arel-Bundock and Zeileis, tinyplot, CRAN,
+# doi:10.32614/CRAN.package.tinyplot), in its minimal theme.
+tinyplot::tinytheme("minimal")
 options(scipen = 6, digits = 4)
 
 # The one working object: the EU-frames country-year panel. Task 3 fits
 # against it directly, the helpers of Tasks 4 and 5 fit against it too, and in
 # Task 5 they read their choices from your preregistration.
-euframes <- read_csv("data/EUframes_cy.csv", show_col_types = FALSE)
+euframes <- readr::read_csv("data/EUframes_cy.csv", show_col_types = FALSE)
 
 # The explore and preregister -> build -> run -> report helpers. Each fit
 # they make is a live fixest estimation on the version of the panel that the
-# measurement choices select, tested by the wild cluster bootstrap by country.
+# measurement choices select, tested by CR2 errors clustered by country with
+# Satterthwaite degrees of freedom (clubSandwich).
 source("R/spec_tools.R")
+
+# The figures that the text quotes, read from the curve that ships in data/:
+# the reproduced specification and the model that C6HJR chose in Task 1 of
+# Multi100 (the positive composite on growth, adjusted for unemployment).
+curve_rows <- readr::read_csv("data/spec_curve.csv", show_col_types = FALSE)
+ref_row <- datawizard::data_filter(curve_rows, is_reference)
+growth_row <- datawizard::data_filter(
+  curve_rows, outcome == "mpos" & predictor == "growth" & copredictor == "other" &
+    estimator == "fe_twoway" & noop == "zero" & item_set == "all" & cell_weight == "unweighted"
+)
 ```
 
 ## The claim, and what we are doing to it
@@ -89,10 +96,10 @@ The **EU-frames dataset** (`EUframes_cy.csv`) is the country-year panel behind t
 #| label: count-data
 # How many countries, how many years, how big is the panel?
 euframes |>
-  summarise(
-    countries = n_distinct(cntry),
-    years     = n_distinct(year),
-    rows      = n()
+  datawizard::data_summary(
+    countries = insight::n_unique(cntry),
+    years     = insight::n_unique(year),
+    rows      = length(cntry)
   )
 ```
 
@@ -103,12 +110,13 @@ You should see **27 countries**, **10 years** (2004–2013), and **270 rows**. T
 #| fig-cap: "Mean cosmopolitan EU framing over time, by country – a version of OA's Figure 1."
 #| fig-width: 9
 #| fig-height: 6
-ggplot(euframes, aes(x = year, y = mcosmo)) +
-  geom_line(colour = "grey55") +
-  geom_point(size = 0.7) +
-  facet_wrap(~ cntry, ncol = 6) +
-  scale_x_continuous(breaks = c(2004, 2008, 2013)) +
-  labs(x = NULL, y = "Mean cosmopolitan framing (0–1)")
+# the lines first, one panel per country, then the points added on top
+tinyplot::tinyplot(
+  mcosmo ~ year, facet = ~cntry, data = euframes, type = "l", col = "grey55",
+  facet.args = list(ncol = 6), xaxb = c(2004, 2008, 2013),
+  xlab = "", ylab = "Mean cosmopolitan framing (0–1)"
+)
+tinyplot::tinyplot_add(type = "p", col = "black", pch = 16, cex = 0.6)
 ```
 
 Most countries drift gently; a few move sharply around the 2009 crisis. That variation within each country over time is what the fixed-effects model in Task 3 uses.
@@ -171,18 +179,18 @@ This is the **reproducibility** check. Fit the two-way fixed-effects model that 
 # two-way fixed effects this shifts the intercept, not the slope or the t – it
 # is the transformation that the recorded specification uses, so do it
 # explicitly.
-euframes <- euframes |> mutate(unemp_c = unemp - mean(unemp, na.rm = TRUE))
+euframes <- euframes |> datawizard::data_modify(unemp_c = unemp - mean(unemp, na.rm = TRUE))
 
 # fixest::feols – the bar separates the regression from the fixed effects.
-m1 <- feols(mcosmo ~ unemp_c | cntry + year, data = euframes, vcov = "iid")
+m1 <- fixest::feols(mcosmo ~ unemp_c | cntry + year, data = euframes, vcov = "iid")
 
-tidy(m1)
+parameters::model_parameters(m1)
 ```
 
 ```{r}
 #| label: tbl-corrected
 #| tbl-cap: "The reproduced model on EUframes_cy.csv."
-modelsummary(
+modelsummary::modelsummary(
   list("two-way FE (fixest)" = m1),
   estimate  = "{estimate}",
   statistic = "t = {statistic}",
@@ -209,7 +217,7 @@ This task is **exploratory**. Try several specifications, see what each one does
 
 `try_spec()` takes one argument per decision of the specification menu. Every argument defaults to the specification that you just reproduced, so changing one thing means changing one argument, and everything you do not name stays as it was in Task 3. Every call is a real fit on your machine. The Level 1 arguments change the question, the Level 2 arguments select which version of the country-year panel is fitted (which items the outcome was built from, whether its cells were weighted, what was done with respondents who mentioned nothing, which published series supplies the predictor), and the Level 3 arguments set the form of the predictor.
 
-The printout gives the slope `b` with its conventional standard error and *t*, the claim-aligned partial *r*, two p-values, the class of the result and its placement among the 864 specifications on the curve of the claim. The two p-values come from tests that allow the years of one country to be correlated with one another, which the conventional *t* does not. The first clusters the standard errors by country, with the CR2 correction that suits a small number of countries, and is read from `data/spec_curve.csv`. The second is the wild cluster bootstrap by country, which runs on your machine with each fit: it imposes the null of no association, flips the signs of the residuals country by country 9,999 times, and counts how often a *t* at least as large as the observed one arises. The bootstrap is the test that classes every point on the curve. The reproduced specification lies below zero, but with a bootstrap p of 0.110 it is not significant, and 67% of the 864 specifications lie further in the direction of the claim.
+The printout gives the slope `b` with its conventional standard error and *t*, the claim-aligned partial *r*, the p-value of the test that classes every point on the curve, the class of the result and its placement among the 864 specifications on the curve of the claim. That test allows the years of one country to be correlated with one another, which the conventional *t* does not. It clusters the standard errors by country with the CR2 correction, which suits a small number of countries of unequal weight, and judges the *t* against Satterthwaite degrees of freedom, which count how many countries effectively carry the information; both are computed on your machine with each fit, by the `clubSandwich` package. The reproduced specification lies below zero, but with a CR2 p of `r sprintf("%.4f", ref_row$p_cr2)` on `r sprintf("%.1f", ref_row$df_cr2)` Satterthwaite degrees of freedom it is not significant at 5%, and `r round(100 * mean(curve_rows$r_ca < ref_row$r_ca))`% of the 864 specifications lie further in the direction of the claim.
 
 The menu holds more options than the curve, which keeps only the options that answer this claim in a justifiable way. Every other option is still an argument of `try_spec()`, and trying one is part of the exercise: the helper refuses it, gives the reason why it is not on the curve, and names the page of the course site that teaches it.
 
@@ -306,12 +314,12 @@ my_measure      <- "wb_nat"       # unemp:  wb_nat | es_1574_act | es_2064_pop |
 my_pred_form    <- "raw"          # raw | log   (growth: raw only; centring or z-scaling
                                   #              would leave t, r and p unchanged)
 my_family       <- "gaussian"     # gaussian   (a linear model of the cell means)
-my_se           <- "wcr"          # wcr   (fixed: the wild cluster bootstrap by country)
+my_se           <- "cr2"          # cr2   (fixed: CR2 errors clustered by country)
 
 claim_align     <- TRUE           # the course convention, applied automatically
 
 # 4. Why these controls, in one DAG-grounded sentence: .......................
-# 5. Supported if the claim-aligned coefficient is negative with bootstrap
+# 5. Supported if the claim-aligned coefficient is negative with CR2
 #    p < .05; undermined if it is not significant or positive. I will
 #    report what I get.
 
@@ -333,14 +341,14 @@ Fill the outcome, the right-hand side, and the estimator code exactly as you pre
 my_model <- build_model(mcosmo ~ unemp, estimator = "fe_twoway")
 ```
 
-When the model is accepted, run it. `run_spec()` fits your preregistered specification for real – the estimator code expands into the matching `fixest` call, the measurement choices select the version of the panel that it is fitted on, and the bootstrap runs on the fitted model – and prints its claim-aligned result:
+When the model is accepted, run it. `run_spec()` fits your preregistered specification for real – the estimator code expands into the matching `fixest` call, the measurement choices select the version of the panel that it is fitted on, and the CR2 test is computed on the fitted model – and prints its claim-aligned result:
 
 ```{r}
 #| label: run-spec
 run_spec(my_model)
 ```
 
-Read the output like an analyst, looking at the coefficient and at its claim-aligned partial *r*, the correlation between predictor and outcome once the rest of the model is taken into account. A partial *r* below zero is in the direction of the claim, and the bootstrap p decides whether it is significant; the class line says which of the four cases your result falls in. The placement is the share of the 864 specifications on the curve that lie further in the direction of the claim than yours, 67% for the specification that you reproduced in Task 3. Your result is about to join those of the class on the class chart.
+Read the output like an analyst, looking at the coefficient and at its claim-aligned partial *r*, the correlation between predictor and outcome once the rest of the model is taken into account. A partial *r* below zero is in the direction of the claim, and the CR2 p decides whether it is significant; the class line says which of the four cases your result falls in. The placement is the share of the 864 specifications on the curve that lie further in the direction of the claim than yours, `r round(100 * mean(curve_rows$r_ca < ref_row$r_ca))`% for the specification that you reproduced in Task 3. Your result is about to join those of the class on the class chart.
 
 Now submit it to the class chart. There is nothing to fill in and nothing to transcribe – `report_result()` refits your preregistered specification, builds the spec label, and always submits on the claim-aligned scale that the chart is drawn on. It prints your submission line and a pre-filled form link; open it and press **Send**. Your dot appears on the live [Multiverse](https://codemoreh.github.io/applied-replication/cases/eu-frames/multiverse.html) chart within seconds, this time labelled **declared** rather than exploratory, and with the same tag as your exploratory result.
 
@@ -362,11 +370,11 @@ You did the whole analysis in a plain folder, with no version control and nothin
 ::: {.callout-note title="Going further (optional)"}
 Each of these is a real fit that you can run in this workspace if you have time to spare.
 
-- **Sweep a whole decision.** `for (s in c("wb_nat", "es_1574_act", "es_2064_pop", "es_2564_lfs")) try_spec(measure = s)` fits the four unemployment series in one go, and `my_experiments()` then prints them side by side. The same trick works for any decision on which the curve keeps more than one option.
+- **Sweep a whole decision.** `purrr::walk(c("wb_nat", "es_1574_act", "es_2064_pop", "es_2564_lfs"), \(s) try_spec(measure = s))` fits the four unemployment series in one go, and `my_experiments()` then prints them side by side. The same trick works for any decision on which the curve keeps more than one option.
 
 - **The mirror-image expectation.** The claim is about *positive* framing, and the other half of the hypothesis expects poor economic performance to *raise* negative framing. The three negative scales (`mcomm`, `mlib` and `mneg`) have a curve of their own on the Multiverse page of the course site, so the helpers refuse them here and say why: `try(try_spec(outcome = "mneg"))` prints the reason.
 
-- **Beyond unemployment.** Preregister `my_predictor <- "growth"` with `my_measure <- "wb_growth"` (GDP growth, which four of the five original analysts used when Multi100 left the choice of measure to them): the claim now predicts a *positive* growth coefficient on the positive framings, and the sign convention flips automatically. Refitted on the EU-frames panel, the model that analyst C6HJR chose in Task 1 of Multi100, `mpos ~ growth + unemp` with two-way fixed effects, gives a growth coefficient of b = +0.00167, t = 1.59 on 232 df and a bootstrap p of 0.345, which is not significant.
+- **Beyond unemployment.** Preregister `my_predictor <- "growth"` with `my_measure <- "wb_growth"` (GDP growth, which four of the five original analysts used when Multi100 left the choice of measure to them): the claim now predicts a *positive* growth coefficient on the positive framings, and the sign convention flips automatically. Refitted on the EU-frames panel, the model that analyst C6HJR chose in Task 1 of Multi100, `mpos ~ growth + unemp` with two-way fixed effects, gives a growth coefficient of b = +`r sprintf("%.5f", growth_row$b)`, t = `r sprintf("%.2f", growth_row$t)` on `r growth_row$df` df and a CR2 p of `r sprintf("%.3f", growth_row$p_cr2)`, which is not significant.
 
 - **The full SCORE dossier.** OA's paper went through all three Rs in the SCORE programme and got three different verdicts: its push-button reproduction **failed** (the author-provided Stata code referenced file names that did not match what was available), its reproduction from the source data was recorded as **not reproduced**, and its preregistered replication on later Eurobarometer waves was judged **not successful** (a positive coefficient, opposite in sign to the claim and not significant). Explore reproduction, robustness, and replication side by side at <https://osf.io/h7432/>.
 :::

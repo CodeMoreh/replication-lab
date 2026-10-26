@@ -4,44 +4,40 @@
 #               the console: look at the panel, reproduce the result recorded
 #               in Multi100 (t = -3.804), explore the specification menu, then
 #               preregister one specification and fit and report it. Every fit
-#               is live, and each is tested by the wild cluster bootstrap by
-#               country, as on the curve of 864 specifications.
+#               is live, and each is tested by CR2 errors clustered by country
+#               with Satterthwaite df, as on the curve of 864 specifications.
 # Reads:        data/EUframes_cy.csv   (the EU-frames country-year panel);
 #               through R/spec_tools.R, data/teney_panel_measurement.csv and
 #               data/predictor_measures.csv (the measurement variants behind
-#               the menu), data/spec_curve.csv (the curve, for the CR2 p and
-#               the placement) and data/menu_options.csv (the reason for every
+#               the menu), data/spec_curve.csv (the curve, for the placement
+#               and the check of each fit) and data/menu_options.csv (the reason for every
 #               option that is not on the curve)
 # Writes:       – (prints results to the console; the submit helpers print a
 #               pre-filled form link)
 # Author:       Chris Moreh
-# Last updated: 2026-10-25
+# Last updated: 2026-10-26
 ##############################################################################
 
 # The code you work through is analyst C6HJR's own submitted analysis, adapted
 # so it runs from the committed CSV alone. The upstream data-preparation step,
 # which assembles this panel from the raw GESIS Eurobarometer waves, is the
 # read-only exhibit prep/prep_exhibit.R. It needs raw files that are not
-# shipped here.
-
-library(dplyr)
-library(readr)
-library(fixest)
-library(broom)
+# shipped here. Every function is called with the name of its package, so that
+# you can see where each one comes from.
 
 # The one working object, and the helpers that explore, preregister, build,
 # run and report a specification.
-euframes <- read_csv("data/EUframes_cy.csv", show_col_types = FALSE)
+euframes <- readr::read_csv("data/EUframes_cy.csv", show_col_types = FALSE)
 source("R/spec_tools.R")
 
 ## ---- Task 2: meet the panel -----------------------------------------------
 
 # One row per country-year: 27 EU member states x 10 years, 2004–2013.
 euframes |>
-  summarise(
-    n_rows      = n(),
-    n_countries = n_distinct(cntry),
-    n_years     = n_distinct(year),
+  datawizard::data_summary(
+    n_rows      = length(cntry),
+    n_countries = insight::n_unique(cntry),
+    n_years     = insight::n_unique(year),
     year_min    = min(year),
     year_max    = max(year)
   )
@@ -52,14 +48,14 @@ euframes |>
 # constrained specification names. With two-way fixed effects this shifts only
 # the intercept and leaves the slope and its t unchanged.
 euframes <- euframes |>
-  mutate(unemp_c = unemp - mean(unemp))
+  datawizard::data_modify(unemp_c = unemp - mean(unemp))
 
 # Two-way (country + year) fixed effects – the constrained Multi100 Task-2
 # model. The coefficient is -0.00347, t = -3.804 on 233 df, which is the value
 # recorded for analyst C6HJR in the Multi100 dataset, reproduced from the
 # published data and the published model.
-m1 <- feols(mcosmo ~ unemp_c | cntry + year, data = euframes)
-tidy(m1)
+m1 <- fixest::feols(mcosmo ~ unemp_c | cntry + year, data = euframes, vcov = "iid")
+parameters::model_parameters(m1)
 
 ## ---- Task 4: work the menu ------------------------------------------------
 
@@ -73,8 +69,8 @@ tidy(m1)
 # one thing means changing one argument. Level 1 arguments change the
 # question, Level 2 arguments select which version of the panel is fitted,
 # and the Level 3 argument sets the form of the predictor. Each call prints the
-# conventional fit, the CR2 and bootstrap p-values, the class of the result and
-# its placement among the 864 specifications on the curve.
+# conventional fit, the CR2 p-value with its Satterthwaite df, the class of the
+# result and its placement among the 864 specifications on the curve.
 try_spec()                              # the reproduced specification itself
 try_spec(outcome     = "mpos")          # the composite of both positive framings
 try_spec(estimator   = "fe_country")    # country effects only: changes common to all of Europe stay in
@@ -127,7 +123,7 @@ my_measure      <- "wb_nat"       # unemp:  wb_nat | es_1574_act | es_2064_pop |
 my_pred_form    <- "raw"          # raw | log   (growth: raw only; centring or z-scaling
                                   #              would leave t, r and p unchanged)
 my_family       <- "gaussian"     # gaussian   (a linear model of the cell means)
-my_se           <- "wcr"          # wcr   (fixed: the wild cluster bootstrap by country)
+my_se           <- "cr2"          # cr2   (fixed: CR2 errors clustered by country)
 
 claim_align     <- TRUE           # the course convention, applied automatically
 
@@ -139,7 +135,7 @@ prereg()   # checks every choice against the menu and prints your preregistratio
 # outcome, the right-hand side, the estimator code. build_model() refuses
 # anything that does not match the preregistration. run_spec() then expands
 # the estimator code into the real fixest call, fitted on the version of the
-# panel that the measurement choices select, and runs the bootstrap on it.
+# panel that the measurement choices select, and computes its CR2 test.
 my_model <- build_model(mcosmo ~ unemp, estimator = "fe_twoway")
 run_spec(my_model)
 

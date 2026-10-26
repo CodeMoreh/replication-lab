@@ -50,8 +50,9 @@ jobs:
         with:
           # No DESCRIPTION file in this template, so list the packages explicitly.
           packages: >
-            dplyr, readr, ggplot2, broom, fixest,
-            dagitty, ggdag, modelsummary, osfr
+            readr, datawizard, insight, dplyr, purrr, tibble, fixest,
+            clubSandwich, effectsize, parameters, tinyplot, dagitty, ggdag,
+            modelsummary, osfr, rmarkdown
 
       - name: Render the Quarto site
         uses: quarto-dev/quarto-actions/render@v2

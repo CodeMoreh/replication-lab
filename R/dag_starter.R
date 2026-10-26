@@ -1,4 +1,4 @@
-# ########################################################################### #
+##############################################################################
 # Title:        dag_starter.R – the half-built DAG for the claim under test
 # Purpose:      The object you complete in Task 2. It encodes the identification
 #               assumptions behind the claim "national unemployment lowers
@@ -7,10 +7,10 @@
 #               arrows are written into the same call but commented out.
 #               Uncomment the ones you believe, re-source, and read the
 #               adjustment set off the graph with dagitty::adjustmentSets().
-# Sourced by:   index.qmd (Task 2)
 # Author:       Chris Moreh
-# Last updated: 2026-08-25
-# ########################################################################### #
+# Last updated: 2026-10-26
+# Sourced by:   index.qmd (Task 2)
+##############################################################################
 
 # A short vocabulary, because the whole exercise depends on these three terms:
 #   confounder – a common cause of BOTH exposure and outcome; ADJUST for it,
@@ -20,12 +20,6 @@
 #   collider   – a common EFFECT of two variables; adjusting OPENS a spurious
 #                path, so leave colliders alone unless you know what you are
 #                doing.
-
-suppressPackageStartupMessages({
-  library(dagitty)
-  library(ggdag)
-  library(ggplot2)
-})
 
 # --- Where the nodes sit ----------------------------------------------------
 # The exposure is on the left, the outcome on the right, the two assumed
@@ -50,7 +44,7 @@ coords <- list(
 #
 # A node exists only if some arrow mentions it, so the candidates below stay off
 # the plot until you commit to one.
-dag <- dagify(
+dag <- ggdag::dagify(
   # The causal path of interest.
   framing ~ unemployment,
 
@@ -106,31 +100,40 @@ dag <- dagify(
 # --- Draw it ----------------------------------------------------------------
 # One call for the report. Node names are too long to fit inside circles, so
 # each node is drawn as a labelled box. Colour marks the exposure and the
-# outcome, and every other node is grey. Returns a ggplot object.
+# outcome, and every other node is grey. The canvas is a tinyplot (McDermott,
+# Arel-Bundock and Zeileis, tinyplot, CRAN, doi:10.32614/CRAN.package.tinyplot),
+# and the arrows and boxes are drawn on it with the base graphics under it.
 plot_dag <- function(d = dag) {
-  ggdag::tidy_dagitty(d) |>
-    ggdag::node_status() |>
-    ggplot2::ggplot(ggplot2::aes(x = x, y = y, xend = xend, yend = yend)) +
-    ggdag::geom_dag_edges(
-      edge_colour = "grey45",
-      arrow_directed = grid::arrow(length = grid::unit(7, "pt"),
-                                   type = "closed")) +
-    # Labelled boxes, because a name like "unemployment" does not fit inside
-    # any circle small enough to leave the arrows visible.
-    ggplot2::geom_label(
-      ggplot2::aes(label = name, fill = status),
-      colour = "white", fontface = "bold", size = 3.4, label.size = 0,
-      label.r = grid::unit(4, "pt"), label.padding = grid::unit(5, "pt")) +
-    ggplot2::scale_fill_manual(
-      values = c(exposure = "#1b6ca8", outcome = "#d1495b"),
-      na.value = "grey55", breaks = c("exposure", "outcome"),
-      labels = c("exposure", "outcome"), name = NULL) +
-    # Without the override, the legend keys show the placeholder letter "a"
-    # that geom_label draws.
-    ggplot2::guides(fill = ggplot2::guide_legend(
-      override.aes = list(label = ""))) +
-    ggdag::theme_dag() +
-    ggplot2::scale_x_continuous(expand = ggplot2::expansion(mult = 0.25)) +
-    ggplot2::scale_y_continuous(expand = ggplot2::expansion(mult = 0.25)) +
-    ggplot2::theme(legend.position = "bottom")
+  xy <- dagitty::coordinates(d)
+  # only the nodes that some arrow mentions are in the graph; dplyr::mutate(),
+  # because the columns are built from the arguments of this function
+  nodes <- tibble::tibble(name = names(d)) |>
+    dplyr::mutate(
+      x = xy$x[name], y = xy$y[name],
+      fill = dplyr::case_when(name %in% dagitty::exposures(d) ~ "#1b6ca8",
+                              name %in% dagitty::outcomes(d) ~ "#d1495b",
+                              .default = "grey55"))
+  e <- dagitty::edges(d)
+  from <- match(e$v, nodes$name)
+  to <- match(e$w, nodes$name)
+  tinyplot::tinyplot(y ~ x, data = nodes, type = "n", axes = FALSE, frame.plot = FALSE, grid = FALSE,
+                     xlab = "", ylab = "", xlim = range(nodes$x) + c(-0.5, 0.5),
+                     ylim = range(nodes$y) + c(-0.6, 0.3))
+  # Labelled boxes, because a name like "unemployment" does not fit inside any
+  # circle small enough to leave the arrows visible; each arrow stops where it
+  # meets the box of the node that it points to, and starts where it leaves the
+  # box of the node that it comes from.
+  w <- graphics::strwidth(nodes$name, font = 2) / 2 + graphics::strwidth("m")
+  h <- graphics::strheight(nodes$name, font = 2) / 2 + graphics::strheight("m") / 2
+  dx <- nodes$x[to] - nodes$x[from]
+  dy <- nodes$y[to] - nodes$y[from]
+  cut_to <- pmin(w[to] / abs(dx), h[to] / abs(dy)) + 0.02
+  cut_from <- pmin(w[from] / abs(dx), h[from] / abs(dy))
+  graphics::arrows(nodes$x[from] + cut_from * dx, nodes$y[from] + cut_from * dy,
+                   nodes$x[to] - cut_to * dx, nodes$y[to] - cut_to * dy,
+                   length = 0.1, angle = 20, col = "grey45", lwd = 1.6)
+  graphics::rect(nodes$x - w, nodes$y - h, nodes$x + w, nodes$y + h, col = nodes$fill, border = NA)
+  graphics::text(nodes$x, nodes$y, nodes$name, col = "white", font = 2)
+  graphics::legend("bottom", legend = c("exposure", "outcome"), fill = c("#1b6ca8", "#d1495b"),
+                   border = NA, bty = "n", horiz = TRUE)
 }

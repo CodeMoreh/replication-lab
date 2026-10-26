@@ -1,4 +1,4 @@
-# ########################################################################### #
+##############################################################################
 # Title:        01_build_respondents.R – the Eurobarometer respondent file
 # Purpose:      Turn the sixteen GESIS Eurobarometer files you downloaded into
 #               one respondent-level data frame that contains every variable
@@ -19,8 +19,8 @@
 #               never committed, uploaded, shared or passed to an AI assistant
 #               data_private/build_report.csv – the per-file check table
 # Author:       Chris Moreh
-# Last updated: 2026-09-08
-# ########################################################################### #
+# Last updated: 2026-10-26
+##############################################################################
 
 # --- where the files are ------------------------------------------------------
 # Put the sixteen .dta files (and the two .dta.zip archives, if you have not
@@ -28,10 +28,6 @@
 # here or in the environment variable EB_RAW_DIR. On Windows a path can be
 # written with forward slashes: "C:/Users/you/Eurobarometer".
 raw_dir <- Sys.getenv("EB_RAW_DIR", unset = "../eurobarometer_raw")
-
-suppressPackageStartupMessages({
-  library(haven); library(dplyr); library(purrr); library(readr); library(tibble)
-})
 
 # --- the sixteen studies used by the course ----------------------------------
 # One row per wave: the name under which GESIS serves the file, the study
@@ -41,7 +37,7 @@ suppressPackageStartupMessages({
 # column, and the MD5 checksum of the file from which the course panel was
 # built. GESIS serves ZA4506 and ZA4744 as .dta.zip archives, which the script
 # unzips into the same folder.
-inventory <- tribble(
+inventory <- tibble::tribble(
   ~file,               ~study,   ~eb,    ~year, ~cntry_v,   ~items_from, ~items_style, ~w1_v, ~md5,
   "ZA4056_v1-0-1.dta", "ZA4056", "61.0", 2004, "isocntry",  63,  "v",    "v9", "0fc7763a1b0ae4bac6fb70bf87d07543",
   "ZA4229_v1-1-0.dta", "ZA4229", "62.0", 2004, "v7",        105, "v",    "v8", "76051b80553ee29be104d13777eeae31",
@@ -110,7 +106,7 @@ unzip_if_needed <- function(file) {
   target
 }
 
-paths <- map_chr(inventory$file, unzip_if_needed)
+paths <- purrr::map_chr(inventory$file, unzip_if_needed)
 missing <- inventory$file[!file.exists(paths)]
 if (length(missing) > 0)
   stop("Not found in '", raw_dir, "': ", paste(missing, collapse = ", "),
@@ -135,7 +131,10 @@ covariate_labels <- c(
 )
 
 label_of <- function(d) {
-  map_chr(d, \(x) { l <- attr(x, "label"); if (is.null(l)) "" else as.character(l) })
+  purrr::map_chr(d, \(x) {
+    l <- attr(x, "label")
+    if (is.null(l)) "" else as.character(l)
+  })
 }
 
 # One column name per characteristic, or NA when a wave does not include it.
@@ -154,36 +153,41 @@ read_wave <- function(w, path) {
   items <- if (w$items_style == "v") paste0("v", w$items_from:(w$items_from + 15))
            else paste0(w$items_style, "_", 1:16)
 
-  head <- read_dta(path, n_max = 0)
-  nm <- names(head); lab <- label_of(head)
-  cov <- imap_chr(covariate_labels, \(p, k) resolve(nm, lab, p, w$file, k))
+  head <- haven::read_dta(path, n_max = 0)
+  nm <- names(head)
+  lab <- label_of(head)
+  cov <- purrr::imap_chr(covariate_labels, \(p, k) resolve(nm, lab, p, w$file, k))
+  absent <- names(cov)[is.na(cov)]
 
-  cols <- c(w$cntry_v, items, w$w1_v, na.omit(unname(cov)))
-  d <- read_dta(path, col_select = all_of(cols))
-  d <- d[, cols]
-  names(d) <- c("cntry", names(item_labels), "w1", names(cov)[!is.na(cov)])
-  for (miss in names(cov)[is.na(cov)]) d[[miss]] <- NA_real_
-
-  d <- d |> mutate(across(all_of(names(item_labels)), \(x) as.numeric(x)))
-  vals <- unique(na.omit(unlist(d[names(item_labels)])))
+  # read_dta returns the columns in file order, so the requested order is
+  # restored; a characteristic that the wave does not include is added empty
+  cols <- c(w$cntry_v, items, w$w1_v, stats::na.omit(unname(cov)))
+  d <- haven::read_dta(path, col_select = dplyr::all_of(cols)) |>
+    datawizard::data_select(select = cols) |>
+    purrr::set_names(c("cntry", names(item_labels), "w1", names(cov)[!is.na(cov)])) |>
+    dplyr::mutate(!!!purrr::set_names(rep(list(NA_real_), length(absent)), absent)) |>
+    dplyr::mutate(dplyr::across(dplyr::all_of(names(item_labels)), \(x) as.numeric(x)))
+  vals <- unique(stats::na.omit(unlist(d[names(item_labels)])))
   stopifnot("EU-meaning items are not coded 0/1" = all(vals %in% c(0, 1)))
 
   # Germany and the United Kingdom are sampled as two regions each; the
-  # published analysis treats each as one country.
+  # published analysis treats each as one country. dplyr::mutate() and
+  # dplyr::filter(), because the values name the argument w and the vector
+  # eu27, which the datawizard verbs cannot see from inside a function.
   d |>
-    mutate(cntry = as.character(cntry),
-           cntry = recode(cntry, "DE-E" = "DE", "DE-W" = "DE",
-                          "GB-GBN" = "GB", "GB-NIR" = "GB"),
-           study = w$study, eb = w$eb, year = w$year,
-           across(c(age, gender, edu, occ, urban, rile, w1), \(x) as.numeric(x))) |>
-    filter(cntry %in% eu27) |>
-    select(study, eb, year, cntry, w1, all_of(names(item_labels)),
-           age, gender, edu, occ, urban, rile)
+    dplyr::mutate(cntry = as.character(cntry),
+                  cntry = datawizard::recode_values(cntry, recode = list(DE = c("DE-E", "DE-W"),
+                                                                         GB = c("GB-GBN", "GB-NIR"))),
+                  study = w$study, eb = w$eb, year = w$year,
+                  dplyr::across(c(age, gender, edu, occ, urban, rile, w1), \(x) as.numeric(x))) |>
+    dplyr::filter(cntry %in% eu27) |>
+    datawizard::data_select(select = c("study", "eb", "year", "cntry", "w1", names(item_labels),
+                                       "age", "gender", "edu", "occ", "urban", "rile"))
 }
 
-waves <- map2(seq_len(nrow(inventory)), paths,
-              \(i, p) read_wave(inventory[i, ], p))
-respondents <- bind_rows(waves)
+waves <- purrr::map2(seq_len(nrow(inventory)), paths,
+                     \(i, p) read_wave(inventory[i, ], p))
+respondents <- dplyr::bind_rows(waves)
 
 # --- 3. the respondent characteristics, in the coding of the published models
 # Education is the age at which full-time schooling finished. GESIS codes
@@ -199,21 +203,21 @@ respondents <- bind_rows(waves)
 # group. Left–right placement is 1 to 10 and is asked in twelve of the sixteen
 # waves; the other four are missing by design.
 respondents <- respondents |>
-  mutate(
+  dplyr::mutate(
     female  = as.integer(gender == 2),
     edu_raw = edu,
-    edu4    = case_when(edu_raw == 98            ~ "studying",
+    edu4    = dplyr::case_when(edu_raw == 98            ~ "studying",
                         edu_raw %in% c(97, 0:15) ~ "le15",
                         edu_raw %in% 16:19       ~ "e16_19",
                         edu_raw %in% 20:96       ~ "e20plus",
                         TRUE                     ~ NA_character_),
-    edu     = if_else(edu %in% c(0, 97, 99), NA_real_, edu),
-    edu     = if_else(edu == 98, age, edu),
-    edu3    = case_when(edu < 16              ~ "low",
+    edu     = dplyr::if_else(edu %in% c(0, 97, 99), NA_real_, edu),
+    edu     = dplyr::if_else(edu == 98, age, edu),
+    edu3    = dplyr::case_when(edu < 16              ~ "low",
                         edu >= 16 & edu <= 19 ~ "mid",
                         edu > 19              ~ "high",
                         TRUE                  ~ NA_character_),
-    ses     = case_when(occ %in% 5:9   ~ "self_employed",
+    ses     = dplyr::case_when(occ %in% 5:9   ~ "self_employed",
                         occ %in% 10:12 ~ "manager",
                         occ %in% 13:14 ~ "white_collar",
                         occ %in% 15:18 ~ "manual",
@@ -223,11 +227,11 @@ respondents <- respondents |>
                         occ == 2       ~ "student",
                         TRUE           ~ NA_character_),
     unemployed = as.integer(ses == "unemployed"),
-    urban   = case_when(urban == 1 ~ "rural", urban == 2 ~ "small_town",
-                        urban == 3 ~ "large_town", TRUE ~ NA_character_),
-    rile    = if_else(rile %in% 1:10, rile, NA_real_)
+    urban   = dplyr::case_when(urban == 1 ~ "rural", urban == 2 ~ "small_town",
+                               urban == 3 ~ "large_town", TRUE ~ NA_character_),
+    rile    = dplyr::if_else(rile %in% 1:10, rile, NA_real_)
   ) |>
-  select(-gender, -occ)
+  datawizard::data_select(exclude = c("gender", "occ"))
 
 # --- 4. the checks ---------------------------------------------------------------
 # Three things are compared with the files that ship with the course. The
@@ -236,15 +240,15 @@ respondents <- respondents |>
 # same country-years, and the no-opinion count whether the closing codes were
 # read from the right columns. All three should agree exactly, and the report
 # lists where they do not.
-panel   <- read_csv("data/EUframes_cy.csv", show_col_types = FALSE)
-weights <- read_csv("data/teney_panel_weights.csv", show_col_types = FALSE)
+panel   <- readr::read_csv("data/EUframes_cy.csv", show_col_types = FALSE)
+weights <- readr::read_csv("data/teney_panel_weights.csv", show_col_types = FALSE)
 
 items13 <- names(item_labels)[c(1:7, 9:14)]
 cells <- respondents |>
-  mutate(n_all = rowSums(across(all_of(items13))),
-         noop_type = case_when(n_all > 0 ~ "answered", oth == 1 ~ "other",
-                               dk == 1 ~ "dk", TRUE ~ "blank")) |>
-  summarise(n_cy_built = n(),
+  dplyr::mutate(n_all = datawizard::row_sums(dplyr::pick(dplyr::all_of(items13))),
+                noop_type = dplyr::case_when(n_all > 0 ~ "answered", oth == 1 ~ "other",
+                                             dk == 1 ~ "dk", TRUE ~ "blank")) |>
+  dplyr::summarise(n_cy_built = dplyr::n(),
             n_noop_built  = sum(n_all == 0),
             n_dk_built    = sum(noop_type == "dk"),
             n_other_built = sum(noop_type == "other"),
@@ -252,18 +256,19 @@ cells <- respondents |>
             .by = c(cntry, year))
 
 cell_check <- panel |>
-  select(cntry, year, n_cy) |>
-  left_join(weights |> select(cntry, year, n_noop, n_dk, n_other, n_blank),
-            by = c("cntry", "year")) |>
-  left_join(cells, by = c("cntry", "year"))
+  datawizard::data_select(select = c("cntry", "year", "n_cy")) |>
+  dplyr::left_join(datawizard::data_select(weights, select = c("cntry", "year", "n_noop", "n_dk",
+                                                               "n_other", "n_blank")),
+                   by = c("cntry", "year")) |>
+  dplyr::left_join(cells, by = c("cntry", "year"))
 
 file_report <- inventory |>
-  select(study, eb, year, file, md5_expected = md5) |>
-  mutate(md5_found = checksums,
-         identical_to_course_file = md5_found == md5_expected,
-         rows_eu27 = map_int(waves, nrow))
+  datawizard::data_select(select = c("study", "eb", "year", "file", md5_expected = "md5")) |>
+  dplyr::mutate(md5_found = checksums,
+                identical_to_course_file = md5_found == md5_expected,
+                rows_eu27 = purrr::map_int(waves, nrow))
 
-report <- tibble(
+report <- tibble::tibble(
   check = c("files found", "files identical to the course build",
             "country-years in the committed panel", "country-years rebuilt",
             "cells with an identical respondent count",
@@ -282,21 +287,20 @@ report <- tibble(
 # below is derived from licensed microdata and stays on your machine.
 dir.create("data_private", showWarnings = FALSE)
 saveRDS(respondents, "data_private/eb_respondents.rds")
-write_csv(file_report, "data_private/build_report.csv")
+readr::write_csv(file_report, "data_private/build_report.csv")
 
-print(as.data.frame(file_report |> select(study, eb, year, rows_eu27,
-                                          identical_to_course_file)),
-      row.names = FALSE, right = FALSE)
-cat("\n")
+file_report |>
+  datawizard::data_select(select = c("study", "eb", "year", "rows_eu27",
+                                     "identical_to_course_file")) |>
+  as.data.frame() |>
+  print(row.names = FALSE, right = FALSE)
 print(as.data.frame(report), row.names = FALSE, right = FALSE)
-cat("\nrespondents:", nrow(respondents), "rows,", ncol(respondents),
-    "columns, written to data_private/eb_respondents.rds\n")
 if (all(file_report$identical_to_course_file) &&
     report$value[5] == nrow(panel) && report$value[6] == nrow(panel)) {
-  cat("Every check passed: your file is the one from which the course panel was built.\n")
+  writeLines("Every check passed: your file is the one from which the course panel was built.")
 } else {
-  cat("At least one check differs. A checksum difference means GESIS has ",
-      "re-released that file. A cell difference means that the respondents read here ",
-      "are not the ones in the course panel. Compare data_private/build_report.csv with the ",
-      "inventory above, and bring the report to the session.\n", sep = "")
+  writeLines(paste0("At least one check differs. A checksum difference means GESIS has ",
+                    "re-released that file. A cell difference means that the respondents read here ",
+                    "are not the ones in the course panel. Compare data_private/build_report.csv ",
+                    "with the inventory above, and bring the report to the session."))
 }

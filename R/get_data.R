@@ -1,27 +1,25 @@
-# ============================================================================
-# get_data.R – fetch the EU-frames panel the way a researcher would
-# ----------------------------------------------------------------------------
-# NOTE: EUframes_cy.csv already ships inside the data/ folder of this workspace,
-# so the report renders offline without ever running this script. This file is
-# an optional EXERCISE in OSF access: run it to practise pulling a real
-# published artefact from the Open Science Framework. If every remote step fails
-# (no network, OSF down), the committed copy is used and the report still works.
-#
-# The steps are tried in order, the most 'proper' first, and each is announced
-# with a message():
-#   1. file already present  -> nothing to do
-#   2. osfr: node 6zqct main folder -> download EUframes_cy.csv   (analyst's fork)
-#   3. course site mirror     https://codemoreh.github.io/applied-replication/
-#                             cases/eu-frames/data/EUframes_cy.csv
-#
-# Note on OSF nodes: the analyst's fork is osf.io/6zqct ("Multi100 |
-# Teney_EurSocioRev_2016 | Analyst_C6HJR"), maintained for educational use; its
-# main folder contains EUframes_cy.csv, the panel that this exercise uses. The
-# official Multi100 archival record is osf.io/8rtwe.
-#
-# Usage:
-#   source("R/get_data.R")   # writes/ensures data/EUframes_cy.csv
-# ============================================================================
+##############################################################################
+# Title:        get_data.R – fetch the EU-frames panel the way a researcher would
+# Purpose:      EUframes_cy.csv already ships inside the data/ folder of this
+#               workspace, so the report renders offline without this script.
+#               It is an optional exercise in OSF access: sourcing it pulls a
+#               real published artefact from the Open Science Framework, and
+#               if every remote step fails (no network, OSF down) the
+#               committed copy is used and the report still works. The steps
+#               are tried in order, the most 'proper' first, and each is
+#               announced with a message(): (1) the file is already present,
+#               so nothing is done; (2) osfr fetches EUframes_cy.csv from the
+#               main folder of OSF node 6zqct, the fork of the analyst; (3) the
+#               mirror on the course site, https://codemoreh.github.io/
+#               applied-replication/cases/eu-frames/data/EUframes_cy.csv.
+#               The fork osf.io/6zqct ("Multi100 | Teney_EurSocioRev_2016 |
+#               Analyst_C6HJR") is maintained for educational use; the
+#               official Multi100 archival record is osf.io/8rtwe.
+# Author:       Chris Moreh
+# Last updated: 2026-10-26
+# Sourced by:   index.qmd (Task 2, optional), which writes or confirms
+#               data/EUframes_cy.csv
+##############################################################################
 
 get_data <- function(dest = "data/EUframes_cy.csv") {
 

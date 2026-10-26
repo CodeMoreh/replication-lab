@@ -6,7 +6,7 @@
 #               checks, and changes nothing on your system. Base R throughout,
 #               because it has to run before any package is installed.
 # Author:       Chris Moreh
-# Last updated: 2026-10-25
+# Last updated: 2026-10-26
 # Sourced by:   the participant, before the session (source("R/check_setup.R"))
 ##############################################################################
 
@@ -51,11 +51,15 @@ if (nzchar(qv) && !grepl("not found|error", qv, ignore.case = TRUE)) {
 }
 
 # --- 3. packages ------------------------------------------------------------
-# Every specification on the curve is fitted with fixest, and its bootstrap
-# runs in base R (R/_wild_bootstrap.R). Quarto runs the R chunks of the report
-# through rmarkdown, so a fresh R installation without it renders nothing.
-needed <- c("dplyr", "readr", "ggplot2", "broom", "fixest",
-            "dagitty", "ggdag", "modelsummary", "osfr", "rmarkdown")
+# Every specification on the curve is fitted with fixest and tested with the
+# CR2 errors of clubSandwich; effectsize converts its t to a partial r, and
+# parameters prints the reproduced model. The data work uses datawizard,
+# insight, dplyr, purrr, tibble and readr, the figures tinyplot, and the causal
+# graph dagitty and ggdag. Quarto runs the R chunks of the report through
+# rmarkdown, so a fresh R installation without it renders nothing.
+needed <- c("readr", "datawizard", "insight", "dplyr", "purrr", "tibble", "fixest", "clubSandwich",
+            "effectsize", "parameters", "tinyplot", "dagitty", "ggdag", "modelsummary",
+            "osfr", "rmarkdown")
 missing <- needed[!vapply(needed, requireNamespace, logical(1), quietly = TRUE)] # r-style: keep – purrr may not be installed yet
 if (length(missing) == 0) {
   ok(paste0("all ", length(needed), " required packages installed"))
