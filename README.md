@@ -73,7 +73,7 @@ The tasks in `index.qmd` map to the day's learning objectives:
 ## Links
 
 - **Course site:** https://codemoreh.github.io/applied-replication/
-- **Submit your results:** `submit_exploration()` in Task 4 and `report_result()` in Task 5 each print a link to a pre-filled Google Form; open it and press **Send**, and the result appears on the live multiverse chart at https://codemoreh.github.io/applied-replication/results.html
+- **Submit your results:** `submit_exploration()` in Task 4 and `report_result()` in Task 5 each print a link to a pre-filled Google Form; open it and press **Send**, and the result appears on the live multiverse chart at https://codemoreh.github.io/applied-replication/cases/eu-frames/multiverse.html
 - **Take-home git/GitHub path:** https://codemoreh.github.io/applied-replication/companion/git-github.html
 - **The OSF analyst fork:** https://osf.io/6zqct/ – the analyst's maintained fork, which holds the working materials and the panel that this workspace uses. The official Multi100 archival record is at https://osf.io/8rtwe/.
 

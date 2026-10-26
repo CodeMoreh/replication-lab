@@ -113,15 +113,15 @@ sys.source("R/_wild_bootstrap.R", envir = .wcr)
 # menu_options.csv, the page of the course that teaches it, and the options
 # that stay on the curve.
 .page_titles <- c(
-  "companion/measurement.qmd"   = "The items behind the scales",
-  "companion/stats-methods.qmd" = "The statistical methods behind the course",
-  "companion/dags.qmd"          = "Causal graphs",
-  "companion/multiverse.qmd"    = "The multiverse and its critics",
-  "companion/weighting.qmd"     = "Weights",
-  "companion/missingness.qmd"   = "Missing answers",
-  "companion/data-sources.qmd"  = "Social science data sources",
-  "results.qmd"                 = "Multiverse",
-  "exercise/estimand-dial.qmd"  = "Decision map")
+  "companion/measurement.qmd"      = "The items behind the scales",
+  "companion/stats-methods.qmd"    = "The statistical methods behind the course",
+  "companion/dags.qmd"             = "Causal graphs",
+  "companion/multiverse.qmd"       = "The multiverse and its critics",
+  "companion/weighting.qmd"        = "Weights",
+  "companion/missingness.qmd"      = "Missing answers",
+  "companion/data-sources.qmd"     = "Social science data sources",
+  "cases/eu-frames/multiverse.qmd" = "Multiverse",
+  "cases/eu-frames/map.qmd"        = "Decision map")
 .page_ref <- function(path) {
   title <- if (path %in% names(.page_titles)) .page_titles[[path]] else path
   sprintf("%s, %s/%s", title, .course_url, sub("\\.qmd$", ".html", path))
@@ -140,7 +140,7 @@ sys.source("R/_wild_bootstrap.R", envir = .wcr)
   axis  <- sub("^my_", "", k)
   keep  <- if (k == "my_measure" && isTRUE(ch$my_predictor %in% names(.measures_for)))
     .measures_for[[ch$my_predictor]] else .menu[[k]]
-  map   <- paste0("  Every decision and its options: ", .page_ref("exercise/estimand-dial.qmd"))
+  map   <- paste0("  Every decision and its options: ", .page_ref("cases/eu-frames/map.qmd"))
   if (!is.character(v) || length(v) != 1 || is.na(v))
     stop(sprintf("%s needs one option in quotes, for example %s = \"%s\".",
                  shown(axis), shown(axis), .menu[[k]][1]), call. = FALSE)

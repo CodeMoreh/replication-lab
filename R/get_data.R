@@ -11,7 +11,8 @@
 # with a message():
 #   1. file already present  -> nothing to do
 #   2. osfr: node 6zqct main folder -> download EUframes_cy.csv   (analyst's fork)
-#   3. course site mirror     https://codemoreh.github.io/applied-replication/data/EUframes_cy.csv
+#   3. course site mirror     https://codemoreh.github.io/applied-replication/
+#                             cases/eu-frames/data/EUframes_cy.csv
 #
 # Note on OSF nodes: the analyst's fork is osf.io/6zqct ("Multi100 |
 # Teney_EurSocioRev_2016 | Analyst_C6HJR"), maintained for educational use; its
@@ -58,12 +59,12 @@ get_data <- function(dest = "data/EUframes_cy.csv") {
 
   # --- Step 3: the course site mirror ---------------------------------------
   # The last resort does not touch OSF at all. It downloads a plain-HTTPS copy
-  # from the GitHub Pages site of the course, which serves the data/ folder
-  # verbatim.
+  # from the GitHub Pages site of the course, which serves the data folder of
+  # the case verbatim.
   message("[3/3] Trying the course site mirror …")
   ok <- tryCatch({
     utils::download.file(
-      "https://codemoreh.github.io/applied-replication/data/EUframes_cy.csv",
+      "https://codemoreh.github.io/applied-replication/cases/eu-frames/data/EUframes_cy.csv",
       dest, mode = "wb", quiet = TRUE)
     file.exists(dest) && file.size(dest) > 0
   }, error = function(e) {
