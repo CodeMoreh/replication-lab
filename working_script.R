@@ -1,12 +1,15 @@
 ##############################################################################
 # Title:        Working script – the EU-frames robustness exercise, plain R
 # Purpose:      Tasks 2 to 5 of index.qmd, as a script you can step through in
-#               the console: look at the panel, reproduce the result recorded
-#               in Multi100 (t = -3.804), explore the specification menu, then
+#               the console: look at the panel, reproduce one of the three
+#               results recorded in Multi100 that rest on aggregate data,
+#               explore the specification menu, then
 #               preregister one specification and fit and report it. Every fit
 #               is live, and each is tested by CR2 errors clustered by country
 #               with Satterthwaite df, as on the curve of 864 specifications.
 # Reads:        data/EUframes_cy.csv   (the EU-frames country-year panel);
+#               data/analyst_KQXUE.csv and data/analyst_018OL.csv (the data of
+#               two of the reproductions of Task 3);
 #               through R/spec_tools.R, data/teney_panel_measurement.csv and
 #               data/predictor_measures.csv (the measurement variants behind
 #               the menu), data/spec_curve.csv (the curve, for the placement
@@ -15,14 +18,14 @@
 # Writes:       – (prints results to the console; the submit helpers print a
 #               pre-filled form link)
 # Author:       Chris Moreh
-# Last updated: 2026-10-26
+# Last updated: 2026-10-27
 ##############################################################################
 
-# The code you work through is analyst C6HJR's own submitted analysis, adapted
-# so it runs from the committed CSV alone. The upstream data-preparation step,
-# which assembles this panel from the raw GESIS Eurobarometer waves, is the
-# read-only exhibit prep/prep_exhibit.R. It needs raw files that are not
-# shipped here. Every function is called with the name of its package, so that
+# From Task 4 on, the code works on the country-year panel of analyst C6HJR,
+# the facilitator, adapted so it runs from the committed CSV alone. The
+# upstream data-preparation step, which assembles this panel from the raw GESIS
+# Eurobarometer waves, is the read-only exhibit prep/prep_exhibit.R. It needs
+# raw files that are not shipped here. Every function is called with the name of its package, so that
 # you can see where each one comes from.
 
 # The one working object, and the helpers that explore, preregister, build,
@@ -42,20 +45,33 @@ euframes |>
     year_max    = max(year)
   )
 
-## ---- Task 3: reproduce the recorded result --------------------------------
+## ---- Task 3: reproduce a recorded result ----------------------------------
 
-# Grand-mean centred unemployment, which is the transformation that the
-# constrained specification names. With two-way fixed effects this shifts only
-# the intercept and leaves the slope and its t unchanged.
+# Choose one of the three analysts whose results rest on aggregate data and
+# step through its block; the codebooks in data/ say how each file was built.
+
+# C6HJR – two-way (country + year) fixed effects on the course panel, with
+# unemployment centred on its grand mean, which shifts only the intercept. On
+# record: t = -3.804 on 233 df.
 euframes <- euframes |>
   datawizard::data_modify(unemp_c = unemp - mean(unemp))
-
-# Two-way (country + year) fixed effects – the constrained Multi100 Task-2
-# model. The coefficient is -0.00347, t = -3.804 on 233 df, which is the value
-# recorded for analyst C6HJR in the Multi100 dataset, reproduced from the
-# published data and the published model.
 m1 <- fixest::feols(mcosmo ~ unemp_c | cntry + year, data = euframes, vcov = "iid")
-parameters::model_parameters(m1)
+print(parameters::model_parameters(m1), digits = 5)
+
+# KQXUE – country fixed effects only, as xtreg cosmo unemployment, fe in Stata,
+# on its own panel (EB 62.0 appended twice, unemployment as a share of the
+# population aged 20-64). On record: t = -7.169 on 242 df.
+kqxue <- readr::read_csv("data/analyst_KQXUE.csv", show_col_types = FALSE)
+m_kqxue <- fixest::feols(cosmo ~ unemp | cntry, data = kqxue, vcov = "iid")
+print(parameters::model_parameters(m_kqxue), digits = 5)
+
+# 018OL – random intercepts for country, year and wave on 420 cells, with the
+# Satterthwaite df of lmerTest; the analyst rescaled the outcome to 0-1, which
+# leaves t unchanged. On record: t = -1.206 on 396.9 df.
+o18ol <- readr::read_csv("data/analyst_018OL.csv", show_col_types = FALSE) |>
+  datawizard::data_modify(pos01 = datawizard::rescale(pos, to = c(0, 1)))
+m_018ol <- lmerTest::lmer(pos01 ~ unemp + (1 | cntry) + (1 | year) + (1 | wave), data = o18ol)
+print(parameters::model_parameters(m_018ol, effects = "fixed", ci_method = "satterthwaite"), digits = 5)
 
 ## ---- Task 4: work the menu ------------------------------------------------
 
@@ -65,8 +81,8 @@ parameters::model_parameters(m1)
 # Both carry the tag that submit_exploration() prints and keeps in .class-tag;
 # submit_exploration(nickname = "...") sets your own (a nickname, not your name).
 # try_spec() takes one argument per decision of the menu, and every one
-# defaults to the specification that you have just reproduced, so changing
-# one thing means changing one argument. Level 1 arguments change the
+# defaults to the reproduced specification, the model of C6HJR in Task 3, so
+# changing one thing means changing one argument. Level 1 arguments change the
 # question, Level 2 arguments select which version of the panel is fitted,
 # and the Level 3 argument sets the form of the predictor. Each call prints the
 # conventional fit, the CR2 p-value with its Satterthwaite df, the class of the

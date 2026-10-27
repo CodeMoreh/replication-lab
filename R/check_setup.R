@@ -53,13 +53,15 @@ if (nzchar(qv) && !grepl("not found|error", qv, ignore.case = TRUE)) {
 # --- 3. packages ------------------------------------------------------------
 # Every specification on the curve is fitted with fixest and tested with the
 # CR2 errors of clubSandwich; effectsize converts its t to a partial r, and
-# parameters prints the reproduced model. The data work uses datawizard,
+# parameters prints the reproduced models. The reproduction of analyst 018OL
+# in Task 3 is a mixed model, fitted with lme4 and read with the Satterthwaite
+# degrees of freedom of lmerTest. The data work uses datawizard,
 # insight, dplyr, purrr, tibble and readr, the figures tinyplot, and the causal
 # graph dagitty and ggdag. Quarto runs the R chunks of the report through
 # rmarkdown, so a fresh R installation without it renders nothing.
 needed <- c("readr", "datawizard", "insight", "dplyr", "purrr", "tibble", "fixest", "clubSandwich",
-            "effectsize", "parameters", "tinyplot", "dagitty", "ggdag", "modelsummary",
-            "osfr", "rmarkdown")
+            "effectsize", "parameters", "lme4", "lmerTest", "tinyplot", "dagitty", "ggdag",
+            "modelsummary", "osfr", "rmarkdown")
 missing <- needed[!vapply(needed, requireNamespace, logical(1), quietly = TRUE)] # r-style: keep – purrr may not be installed yet
 if (length(missing) == 0) {
   ok(paste0("all ", length(needed), " required packages installed"))
@@ -76,11 +78,13 @@ if (length(missing) == 0) {
 # panel on which every task is fitted. The next four are what R/spec_tools.R
 # reads: the measurement variants of the panel, the published predictor series,
 # the curve of 864 specifications and the reasons for the options that are not
-# on it. rep_data.csv is the as-submitted Multi100 artefact, kept as provenance
-# and used by no task.
+# on it. The two analyst files hold the data on which the results of KQXUE and
+# 018OL reproduce in Task 3. rep_data.csv is the as-submitted Multi100
+# artefact, kept as provenance and used by no task.
 data_files <- c("data/EUframes_cy.csv", "data/teney_panel_measurement.csv",
                 "data/predictor_measures.csv", "data/spec_curve.csv",
-                "data/menu_options.csv", "data/rep_data.csv")
+                "data/menu_options.csv", "data/analyst_KQXUE.csv",
+                "data/analyst_018OL.csv", "data/rep_data.csv")
 for (f in data_files) { # r-style: keep – each pass prints one check line
   if (!file.exists(f)) {
     fail(paste0("data file missing: ", f, " – run from the workspace root folder"))

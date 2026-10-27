@@ -51,8 +51,8 @@ jobs:
           # No DESCRIPTION file in this template, so list the packages explicitly.
           packages: >
             readr, datawizard, insight, dplyr, purrr, tibble, fixest,
-            clubSandwich, effectsize, parameters, tinyplot, dagitty, ggdag,
-            modelsummary, osfr, rmarkdown
+            clubSandwich, effectsize, parameters, lme4, lmerTest, tinyplot, dagitty,
+            ggdag, modelsummary, osfr, rmarkdown
 
       - name: Render the Quarto site
         uses: quarto-dev/quarto-actions/render@v2
