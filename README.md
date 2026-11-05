@@ -38,7 +38,7 @@ This workspace is a plain folder, with no version control and no account to sign
 
 ## The Eurobarometer files, for the individual-level work
 
-Everything above runs on the country-year panel in `data/`. The respondent-level data behind it are sixteen Eurobarometer surveys that GESIS distributes under terms that do not allow this workspace to include them, so they are downloaded under your own free GESIS account, into a folder outside the workspace. The course site lists the sixteen studies and walks through the download at https://codemoreh.github.io/applied-replication/companion/data-sources.html#sec-gesis. Two scripts then do the rest:
+Everything above runs on the country-year panel in `data/`. The respondent-level data behind it are sixteen Eurobarometer surveys that GESIS distributes under terms that do not allow this workspace to include them, so they are downloaded under your own free GESIS account, into a folder outside the workspace. The course site lists the sixteen studies and walks through the download at https://codemoreh.github.io/ar4ds-eu/companion/data-sources.html#sec-gesis. Two scripts then do the rest:
 
 - `prep/01_build_respondents.R` – set the folder path at the top, source it once. It checks every file against the version and checksum of the copy from which the course was built, reads the sixteen, harmonises the respondent characteristics, and writes `data_private/eb_respondents.rds`. That folder is ignored by git and must stay so: the file is licensed microdata, never to be shared or opened in a session that an AI assistant can read.
 - `prep/02_scales_and_panel.R` – read and run section by section. It builds the framing scales under the three scoring rules, averages respondents into country-years, merges the macro series, reproduces `data/EUframes_cy.csv` to machine precision, and builds the panel by education band.
@@ -51,7 +51,7 @@ The two scripts under `prep/` that begin "EXHIBIT ONLY" are the historical build
 
 This folder is kept free of git for the session. There is nothing to commit or push and no account to set up, so everyone in the class can get to the analysis in minutes, whatever their machine.
 
-The workspace *came from* a GitHub repository (`CodeMoreh/replication-lab`), and putting your own work under version control – and publishing the rendered report to a live URL – is the natural take-home step. The course site has a self-study companion module that goes through it click by click: **Git and GitHub self-study** at <https://codemoreh.github.io/applied-replication/companion/git-github.html>. The `.github/` and `.devcontainer/` folders already in this workspace set up that route once the folder is a repository again. You can ignore them for the session.
+The workspace *came from* a GitHub repository (`CodeMoreh/replication-lab`), and putting your own work under version control – and publishing the rendered report to a live URL – is the natural take-home step. The course site has a self-study companion module that goes through it click by click: **Git and GitHub self-study** at <https://codemoreh.github.io/ar4ds/git-github.html>. The `.github/` and `.devcontainer/` folders already in this workspace set up that route once the folder is a repository again. You can ignore them for the session.
 
 ------------------------------------------------------------------------
 
@@ -72,9 +72,9 @@ The tasks in `index.qmd` map to the day's learning objectives:
 
 ## Links
 
-- **Course site:** https://codemoreh.github.io/applied-replication/
-- **Submit your results:** `submit_exploration()` in Task 4 and `report_result()` in Task 5 each print a link to a pre-filled Google Form; open it and press **Send**, and the result appears on the live multiverse chart at https://codemoreh.github.io/applied-replication/cases/eu-frames/multiverse.html
-- **Take-home git/GitHub path:** https://codemoreh.github.io/applied-replication/companion/git-github.html
+- **Course site:** https://codemoreh.github.io/ar4ds-eu/
+- **Submit your results:** `submit_exploration()` in Task 4 and `report_result()` in Task 5 each print a link to a pre-filled Google Form; open it and press **Send**, and the result appears on the live multiverse chart at https://codemoreh.github.io/ar4ds-eu/cases/eu-frames/multiverse.html
+- **Take-home git/GitHub path:** https://codemoreh.github.io/ar4ds/git-github.html
 - **The OSF analyst fork:** https://osf.io/6zqct/ – the analyst's maintained fork, which holds the working materials and the panel that this workspace uses. The official Multi100 archival record is at https://osf.io/8rtwe/.
 
 ------------------------------------------------------------------------

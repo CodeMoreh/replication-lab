@@ -385,7 +385,7 @@ run_spec(my_model)
 
 Read the output like an analyst, looking at the coefficient and at its claim-aligned partial *r*, the correlation between predictor and outcome once the rest of the model is taken into account. A partial *r* below zero is in the direction of the claim, and the CR2 p decides whether it is significant; the class line says which of the four cases your result falls in. The placement is the share of the 864 specifications on the curve that lie further in the direction of the claim than yours, `r round(100 * mean(curve_rows$r_ca < ref_row$r_ca))`% for the reproduced specification, the model of C6HJR in Task 3. Your result is about to join those of the class on the class chart.
 
-Now submit it to the class chart. There is nothing to fill in and nothing to transcribe – `report_result()` refits your preregistered specification, builds the spec label, and always submits on the claim-aligned scale that the chart is drawn on. It prints your submission line and a pre-filled form link; open it and press **Send**. Your dot appears on the live [Multiverse](https://codemoreh.github.io/applied-replication/cases/eu-frames/multiverse.html) chart within seconds, this time labelled **declared** rather than exploratory, and with the same tag as your exploratory result.
+Now submit it to the class chart. There is nothing to fill in and nothing to transcribe – `report_result()` refits your preregistered specification, builds the spec label, and always submits on the claim-aligned scale that the chart is drawn on. It prints your submission line and a pre-filled form link; open it and press **Send**. Your dot appears on the live [Multiverse](https://codemoreh.github.io/ar4ds-eu/cases/eu-frames/multiverse.html) chart within seconds, this time labelled **declared** rather than exploratory, and with the same tag as your exploratory result.
 
 ```{r}
 #| label: report
@@ -399,7 +399,7 @@ If the form will not open on your machine, read the printed numbers to the facil
 ------------------------------------------------------------------------
 
 ::: {.callout-note title="Taking it home"}
-You did the whole analysis in a plain folder, with no version control and nothing to sign in to. Putting your own work under version control and publishing the rendered report to a live URL is the natural next step. A self-study module on the course site goes through it click by click: [Git and GitHub self-study](https://codemoreh.github.io/applied-replication/companion/git-github.html). The `.github/` and `.devcontainer/` folders already in this workspace set up that route once the folder is a repository again.
+You did the whole analysis in a plain folder, with no version control and nothing to sign in to. Putting your own work under version control and publishing the rendered report to a live URL is the natural next step. A self-study module on the course site goes through it click by click: [Git and GitHub self-study](https://codemoreh.github.io/ar4ds/git-github.html). The `.github/` and `.devcontainer/` folders already in this workspace set up that route once the folder is a repository again.
 :::
 
 ::: {.callout-note title="Going further (optional)"}

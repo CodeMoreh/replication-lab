@@ -37,7 +37,7 @@
 # Sourced by:   index.qmd and working_script.R (source("R/spec_tools.R"))
 ##############################################################################
 
-.course_url <- "https://codemoreh.github.io/applied-replication"
+.course_url <- "https://codemoreh.github.io/ar4ds-eu"
 
 # The thirteen axis codes that key the curve, in its column order; the
 # inference rule is the fourteenth decision and is the same for every row.

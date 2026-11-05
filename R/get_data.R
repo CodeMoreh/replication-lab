@@ -11,7 +11,7 @@
 #               so nothing is done; (2) osfr fetches EUframes_cy.csv from the
 #               main folder of OSF node 6zqct, the fork of the analyst; (3) the
 #               mirror on the course site, https://codemoreh.github.io/
-#               applied-replication/cases/eu-frames/data/EUframes_cy.csv.
+#               ar4ds-eu/cases/eu-frames/data/EUframes_cy.csv.
 #               The fork osf.io/6zqct ("Multi100 | Teney_EurSocioRev_2016 |
 #               Analyst_C6HJR") is maintained for educational use; the
 #               official Multi100 archival record is osf.io/8rtwe.
@@ -62,7 +62,7 @@ get_data <- function(dest = "data/EUframes_cy.csv") {
   message("[3/3] Trying the course site mirror …")
   ok <- tryCatch({
     utils::download.file(
-      "https://codemoreh.github.io/applied-replication/cases/eu-frames/data/EUframes_cy.csv",
+      "https://codemoreh.github.io/ar4ds-eu/cases/eu-frames/data/EUframes_cy.csv",
       dest, mode = "wb", quiet = TRUE)
     file.exists(dest) && file.size(dest) > 0
   }, error = function(e) {
