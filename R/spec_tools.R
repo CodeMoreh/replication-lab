@@ -390,7 +390,7 @@ prereg <- function() {
     paste0("    predictor  : ", ch$my_predictor,
            if (ch$my_predictor == "growth") " (claim-expected sign flipped automatically)"),
     paste("    adjusted   :", if (ch$my_copredictor == "other") .copred_term(ch) else "nothing"),
-    paste("    comparison :", .est_lab(ch$my_estimator)),
+    paste("    estimator  :", .est_lab(ch$my_estimator)),
     paste("    sample     :", ch$my_sample, "   whose average:", ch$my_weights),
     paste("    scored as  :", ch$my_construction),
     "  Measurement",
