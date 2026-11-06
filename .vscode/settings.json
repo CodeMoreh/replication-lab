@@ -1,0 +1,12 @@
+{
+  // AI features stay off in this workspace. The GESIS terms of use forbid
+  // processing the Eurobarometer files, and the respondent file built from
+  // them, with an AI assistant. Positron and VS Code read these settings
+  // whenever this folder is open; RStudio does not (see README.md).
+  "ai.enabled": false,
+  "assistant.enabled": false,
+  "chat.disableAIFeatures": true,
+  "github.copilot.enable": { "*": false },
+  "github.copilot.nextEditSuggestions.enabled": false,
+  "nextEditSuggestions.enabled": { "*": false }
+}

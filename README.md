@@ -45,6 +45,8 @@ Everything above runs on the country-year panel in `data/`. The respondent-level
 
 The two scripts under `prep/` that begin "EXHIBIT ONLY" are the historical builds, kept for reading.
 
+The GESIS terms of use prohibit processing these files, and anything built from them, with an AI system. This workspace therefore switches off the AI features of Positron and VS Code for its whole folder, in `.vscode/settings.json`, which both IDEs read whenever the folder is open; leave that file as it is. RStudio does not read it, so in RStudio switch the assistant off under Tools → Global Options → Assistant before you open the workspace. The module on AI assistants sets out the terms and the settings: https://codemoreh.github.io/ar4ds/tools/ai.html#sec-licensed
+
 ------------------------------------------------------------------------
 
 ## A note on version control
