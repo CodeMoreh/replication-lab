@@ -16,6 +16,15 @@ CLAUDE.md
 # ignored as a backstop; the raw .dta files should live outside the workspace.
 /data_private/
 
+# A second backstop, for files saved anywhere in the folder: the formats in
+# which GESIS distributes the waves, their archives, and R data files, the
+# format in which the build script saves the file of respondents.
+*.dta
+*.sav
+*.por
+*.zip
+*.rds
+
 # Deliberately NOT ignored:
 #   /_freeze/  – committed so GitHub Actions can publish without re-running R.
 #   /data/     – the CSVs are committed so the report renders offline.
