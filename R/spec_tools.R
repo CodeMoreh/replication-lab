@@ -109,7 +109,8 @@
 # that stay on the curve.
 .page_titles <- c(
   "companion/measurement.qmd"      = "The items behind the scales",
-  "companion/stats-methods.qmd"    = "The statistical methods behind the course",
+  "companion/panel-data.qmd"       = "Panel data",
+  "companion/multilevel.qmd"       = "Multilevel models",
   "companion/dags.qmd"             = "Causal graphs",
   "companion/multiverse.qmd"       = "The multiverse and its critics",
   "companion/weighting.qmd"        = "Weights",
