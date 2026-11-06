@@ -82,11 +82,12 @@ print(parameters::model_parameters(m_018ol, effects = "fixed", ci_method = "satt
 # submit_exploration(nickname = "...") sets your own (a nickname, not your name).
 # try_spec() takes one argument per decision of the menu, and every one
 # defaults to the reproduced specification, the model of C6HJR in Task 3, so
-# changing one thing means changing one argument. Level 1 arguments change the
-# question, Level 2 arguments select which version of the panel is fitted,
-# and the Level 3 argument sets the form of the predictor. Each call prints the
-# conventional fit, the CR2 p-value with its Satterthwaite df, the class of the
-# result and its placement among the 864 specifications on the curve.
+# changing one thing means changing one argument. The arguments for decisions
+# about the question change the question, the measurement arguments select
+# which version of the panel is fitted, and pred_form, a decision about the
+# model, sets the form of the predictor. Each call prints the conventional
+# fit, the CR2 p-value with its Satterthwaite df, the class of the result and
+# its placement among the 864 specifications on the curve.
 try_spec()                              # the reproduced specification itself
 try_spec(outcome     = "mpos")          # the composite of both positive framings
 try_spec(estimator   = "fe_country")    # country effects only: changes common to all of Europe stay in
@@ -110,32 +111,33 @@ submit_exploration()
 
 ## ---- Task 5: preregister one specification --------------------------------
 
-# One choice on each of the fourteen decisions. The seven Level 1 choices fix
-# the question, the four Level 2 choices fix how it is measured, and the three
-# Level 3 choices fix how the model is estimated. The curve keeps two or more
+# One choice on each of the fourteen decisions. The seven decisions about the
+# question fix what you are asking, the four measurement decisions fix how that
+# question is measured, and the three decisions about the model fix how it is
+# estimated. The curve keeps two or more
 # options on nine decisions and one option on the other five; an option that
 # is not on the curve stops prereg() with the reason why. claim_align = TRUE
 # is the course convention, applied automatically: the claim expects framing
 # to rise with GDP growth, so the sign of a growth slope is flipped, and
 # 'supports the claim' is a negative sign.
 
-# Level 1 – Estimands (each of these changes what is being estimated)
+# The question (each of these changes what is being estimated)
 my_outcome      <- "mcosmo"       # mcosmo | mutil | mpos   (the positive framings)
 my_predictor    <- "unemp"        # unemp | growth    (the measure that the claim is about)
 my_copredictor  <- "none"         # none | other      (the other economic measure, adjusted for)
-my_estimator    <- "fe_twoway"    # fe_twoway | fe_country
+my_estimator    <- "fe_twoway"    # fe_twoway | fe_country   (the comparison)
 my_sample       <- "all"          # all    (the 27 member states, 2004–2013)
 my_weights      <- "none"         # none   (every country-year counts once)
 my_construction <- "share"        # share  (the share of a respondent's own mentions)
 
-# Level 2 – Measurement (the same question, put to the data differently)
+# Measurement (the same question, put to the data differently)
 my_noop         <- "zero"         # zero | drop   (respondents who mentioned no frame at all)
 my_item_set     <- "all"          # all | un   (with or without the "unemployment" item)
 my_cell_weight  <- "unweighted"   # unweighted | design   (cells as interviewed, or weighted)
 my_measure      <- "wb_nat"       # unemp:  wb_nat | es_1574_act | es_2064_pop | es_2564_lfs
                                   # growth: wb_growth
 
-# Level 3 – Estimation (the same question and measures, another fit)
+# The model (the same question and measures, another fit)
 my_pred_form    <- "raw"          # raw | log   (growth: raw only; centring or z-scaling
                                   #              would leave t, r and p unchanged)
 my_family       <- "gaussian"     # gaussian   (a linear model of the cell means)

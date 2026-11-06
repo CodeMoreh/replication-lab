@@ -46,11 +46,11 @@
                  "family")
 .neg_framings <- c("mcomm", "mlib", "mneg")
 
-# The options that the curve keeps, grouped as the course groups the menu.
-# Level 1 changes the question, Level 2 the measurement, Level 3 the
-# estimation. Every other option of the menu is listed in menu_options.csv.
+# The options that the curve keeps, in the three groups of the menu: the
+# question, its measurement and the model. Every other option of the menu is
+# listed in menu_options.csv.
 .menu <- list(
-  # Level 1 – Estimands
+  # The question
   my_outcome      = c("mcosmo", "mutil", "mpos"),
   my_predictor    = c("unemp", "growth"),
   my_copredictor  = c("none", "other"),
@@ -58,12 +58,12 @@
   my_sample       = "all",
   my_weights      = "none",
   my_construction = "share",
-  # Level 2 – Measurement
+  # Measurement
   my_noop         = c("zero", "drop"),
   my_item_set     = c("all", "un"),
   my_cell_weight  = c("unweighted", "design"),
   my_measure      = c("wb_nat", "es_1574_act", "es_2064_pop", "es_2564_lfs", "wb_growth"),
-  # Level 3 – Estimation
+  # The model
   my_pred_form    = c("raw", "log"),
   my_family       = "gaussian",
   my_se           = "cr2"
@@ -272,8 +272,9 @@
 
 # --- the printout ----------------------------------------------------------------
 # The one-line spec label that is parsed for the class chart: six of the
-# Level 1 choices, then in brackets the scoring rule and the measurement and
-# estimation choices, the inference rule last.
+# seven decisions about the question, then in brackets the scoring rule, the
+# measurement decisions and the decisions about the model, with the inference
+# rule last.
 .spec_line <- function(ch) {
   neg <- ch$my_outcome %in% .neg_framings
   paste0(ch$my_outcome, if (neg) "_ca" else "", " ~ ", ch$my_predictor, "(", ch$my_pred_form, ")",
@@ -384,18 +385,18 @@ prereg <- function() {
   writeLines(c(
     "DECLARED – your preregistered specification, fixed before the model is fitted:",
     "",
-    "  The question (Level 1)",
+    "  The question",
     paste("    outcome    :", ch$my_outcome),
     paste0("    predictor  : ", ch$my_predictor,
            if (ch$my_predictor == "growth") " (claim-expected sign flipped automatically)"),
     paste("    adjusted   :", if (ch$my_copredictor == "other") .copred_term(ch) else "nothing"),
-    paste("    estimator  :", .est_lab(ch$my_estimator)),
+    paste("    comparison :", .est_lab(ch$my_estimator)),
     paste("    sample     :", ch$my_sample, "   whose average:", ch$my_weights),
     paste("    scored as  :", ch$my_construction),
-    "  The measurement (Level 2)",
+    "  Measurement",
     paste("    no-opinion rule:", ch$my_noop, "  items:", ch$my_item_set),
     paste("    cells:", ch$my_cell_weight, "  series:", ch$my_measure),
-    "  The estimation (Level 3)",
+    "  The model",
     paste("    form:", ch$my_pred_form, "  family:", ch$my_family, "  inference:", .se_lab),
     paste("  claim_align:", isTRUE(claim_align)),
     "",
