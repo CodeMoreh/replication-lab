@@ -58,10 +58,13 @@ if (nzchar(qv) && !grepl("not found|error", qv, ignore.case = TRUE)) {
 # degrees of freedom of lmerTest. The data work uses datawizard,
 # insight, dplyr, purrr, tibble and readr, the figures tinyplot, and the causal
 # graph dagitty and ggdag. Quarto runs the R chunks of the report through
-# rmarkdown, so a fresh R installation without it renders nothing.
+# rmarkdown, so a fresh R installation without it renders nothing. The build of
+# the respondent file for day 3 of the Extended course,
+# prep/01_build_respondents.R, reads the Eurobarometer files with haven, which
+# none of the other packages installs.
 needed <- c("readr", "datawizard", "insight", "dplyr", "purrr", "tibble", "fixest", "clubSandwich",
             "effectsize", "parameters", "lme4", "lmerTest", "tinyplot", "dagitty", "ggdag",
-            "modelsummary", "osfr", "rmarkdown")
+            "modelsummary", "osfr", "haven", "rmarkdown")
 missing <- needed[!vapply(needed, requireNamespace, logical(1), quietly = TRUE)] # r-style: keep – purrr may not be installed yet
 if (length(missing) == 0) {
   ok(paste0("all ", length(needed), " required packages installed"))

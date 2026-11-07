@@ -1,6 +1,10 @@
 project:
   type: website
   output-dir: _site
+  # The report is the only page. The codebooks in data/ stay Markdown files,
+  # read as they are.
+  render:
+    - index.qmd
 
 website:
   title: "Replication lab – the EU-frames case"
